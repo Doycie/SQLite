@@ -13,8 +13,9 @@ namespace SQLite
         {
 
             SQLite db = new SQLite();
-            db.Run();
-            
+            db.BuildDatabase();
+
+            db.ReadDatabase();
 
   
         }

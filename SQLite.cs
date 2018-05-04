@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Data.SQLite;
+using System.IO;
 
 namespace SQLite
 {
@@ -11,21 +12,42 @@ namespace SQLite
     {
 
         SQLiteConnection dbconnection;
-
-        public void Run()
+        
+        public void ReadDatabase()
         {
             OpenConnection();
 
-
-           // CreateExampleTable();
-
-            string sql = "select * from highscores order by score desc";
+            string sql = "select * from autompg order by model_year desc";
             SQLiteCommand command = new SQLiteCommand(sql, dbconnection);
             SQLiteDataReader reader = command.ExecuteReader();
             while (reader.Read())
-                Console.WriteLine("Name: " + reader["name"] + "\tScore: " + reader["score"]);
+                Console.WriteLine("Name: " + reader["model"] + "\tScore: " + reader["model_year"]);
 
             Console.ReadLine();
+
+
+            CloseConnection();
+        }
+
+
+
+        public void BuildDatabase()
+        {
+
+            CreateDatabaseFile();
+            OpenConnection();
+
+
+            StreamReader sr = new StreamReader("autompg.sql");
+
+            string input;
+
+            while((input = sr.ReadLine()) != null)
+            {
+                ExecuteCommand(input);
+
+
+            }
 
             CloseConnection();
         }
@@ -54,11 +76,11 @@ namespace SQLite
 
         void CreateDatabaseFile()
         {
-            SQLiteConnection.CreateFile("MyDatabase.sqlite");
+            SQLiteConnection.CreateFile("CarDatabase.sqlite");
         }
         void OpenConnection()
         {
-            dbconnection = new SQLiteConnection("Data Source=MyDatabase.sqlite;Version=3;");
+            dbconnection = new SQLiteConnection("Data Source=CarDatabase.sqlite;Version=3;");
             dbconnection.Open();
         }
         void CloseConnection()
