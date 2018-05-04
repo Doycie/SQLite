@@ -209,6 +209,7 @@ UpgradeLog*.XML
 UpgradeLog*.htm
 
 # SQL Server files
+*.sql
 *.mdf
 *.ldf
 
