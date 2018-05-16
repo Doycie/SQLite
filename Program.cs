@@ -13,9 +13,9 @@ namespace SQLite
         {
 
             SQLite db = new SQLite();
-            db.BuildDatabase();
+            //db.BuildDatabase("CarDatabase.sqlite","autompg.sql");
 
-            db.ReadDatabase();
+            db.ReadDatabase("CarDatabase.sqlite");
 
   
         }

@@ -13,15 +13,15 @@ namespace SQLite
 
         SQLiteConnection dbconnection;
         
-        public void ReadDatabase()
+        public void ReadDatabase(string name)
         {
-            OpenConnection();
+            OpenConnection(name);
 
             string sql = "select * from autompg order by model_year desc";
             SQLiteCommand command = new SQLiteCommand(sql, dbconnection);
             SQLiteDataReader reader = command.ExecuteReader();
             while (reader.Read())
-                Console.WriteLine("Name: " + reader["model"] + "\tScore: " + reader["model_year"]);
+                Console.WriteLine("Name: " + reader["model"] + "\tYear: " + reader["model_year"]);
 
             Console.ReadLine();
 
@@ -31,30 +31,22 @@ namespace SQLite
 
 
 
-        public void BuildDatabase()
+        public void BuildDatabase(string nameOfDatabase, string fileToLoadFrom)
         {
 
-            CreateDatabaseFile();
-            OpenConnection();
-
-
-            StreamReader sr = new StreamReader("autompg.sql");
-
+            CreateDatabaseFile(nameOfDatabase);
+            OpenConnection(nameOfDatabase);
+            StreamReader sr = new StreamReader(fileToLoadFrom);
             string input;
-
             while((input = sr.ReadLine()) != null)
             {
                 ExecuteCommand(input);
-
-
             }
-
             CloseConnection();
         }
         
         void CreateExampleTable()
         {
-
             string sql = "create table highscores (name varchar(20), score int)";
             ExecuteCommand(sql);
             sql = "insert into highscores (name, score) values ('Me', 3000)";
@@ -70,17 +62,15 @@ namespace SQLite
         {
             SQLiteCommand command = new SQLiteCommand(com, dbconnection);
             command.ExecuteNonQuery();
-
         }
 
-
-        void CreateDatabaseFile()
+        void CreateDatabaseFile(string name)
         {
-            SQLiteConnection.CreateFile("CarDatabase.sqlite");
+            SQLiteConnection.CreateFile(name);
         }
-        void OpenConnection()
+        void OpenConnection(string name)
         {
-            dbconnection = new SQLiteConnection("Data Source=CarDatabase.sqlite;Version=3;");
+            dbconnection = new SQLiteConnection("Data Source="+ name + ";Version=3;");
             dbconnection.Open();
         }
         void CloseConnection()
