@@ -8,28 +8,14 @@ namespace SQLite
 {
     class Program
     {
-        const string metadatastring = "metadata.sqlite";
-        const string cardatabasestring = "CarDatabase.sqlite";
-
-
         static void Main(string[] args)
         {
 
             SQLite db = new SQLite();
 
+            Form1 window = new Form1(db);
+            System.Windows.Forms.Application.Run(window);
 
-
-
-            //db.CreateDatabaseFile(metadatastring);
-             //db.MakeQFDictionary();
-             //db.FillMetaDBWithIDF(cardatabasestring,metadatastring,"brand");
-
-            // db.FillMetaDBWithIDF(cardatabasestring, metadatastring, "model");
-
-
-            
-            // db.ReadDatabase(metadatastring, "model");
-            db.ReadDatabase(metadatastring, "brand");
 
             Console.ReadLine();
 
