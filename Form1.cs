@@ -39,6 +39,7 @@ namespace SQLite
             foreach (var table in tables)
             {
                 comboBox1.Items.Add(table);
+                
             }
 
         }
@@ -49,12 +50,23 @@ namespace SQLite
             if (confirmResult == DialogResult.Yes)
             {
                 db.FillMetaDBWithIDFQF(ProgressMetadatabase);
+                db.FillMetaDBWithAttributeOccurence();
             }
         }
         private void ComboBox1_SelectedValueChanged(object sender, EventArgs e)
         {
-            Console.WriteLine((string)comboBox1.SelectedItem);
-            db.ReadDatabase((string)comboBox1.SelectedItem);
+            string selectedItem = (string)comboBox1.SelectedItem;
+            if(selectedItem.EndsWith("_Occurence"))
+            {
+                db.ReadDatabase_Occurence(selectedItem);
+            }
+            else
+            {
+                Console.WriteLine(selectedItem);
+                db.ReadDatabase_IDFQF(selectedItem);
+
+            }
+
         }
     }
 }

@@ -19,10 +19,11 @@ namespace SQLite
 
             SQLite db = new SQLite();
 
+
             Form1 window = new Form1(db);
             System.Windows.Forms.Application.Run(window);
 
-
+            db.FillMetaDBWithAttributeOccurence();
             Console.ReadLine();
 
         }

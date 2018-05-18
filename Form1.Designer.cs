@@ -87,7 +87,7 @@ namespace SQLite
             this.ButtonPrintMetadataTables.Text = "Retrieve Metadata tables";
             this.ButtonPrintMetadataTables.UseVisualStyleBackColor = true;
             this.ButtonPrintMetadataTables.Click += new System.EventHandler(this.ButtonPrintMetadataTables_Click);
-            // 
+            //
             // GroupMeta
             // 
             this.GroupMeta.BackColor = System.Drawing.SystemColors.Control;
@@ -124,7 +124,7 @@ namespace SQLite
             this.ProgressMetadatabase.Value = 1;
             List<string> tables = db.PrintMetadataTables();
             if (tables.Count > 0)
-            {
+            { 
                 this.ProgressMetadatabase.Maximum = tables.Count;
                 this.ProgressMetadatabase.Value = tables.Count;
             }

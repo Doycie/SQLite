@@ -11,19 +11,37 @@ namespace SQLite
 
         const string metadatastring = "metadata.sqlite";
         const string cardatabasestring = "CarDatabase.sqlite";
+        string[] CatogoricalValues = { "cylinders", "model_year", "origin", "brand", "model", "type" };
 
         //Read IDFQF value for attribute
-        public void ReadDatabase( string attributeName)
+        public void ReadDatabase_IDFQF( string attributeName)
         {
             OpenConnection(metadatastring);
 
-            string sql = "select * from " + attributeName + " order by idfqf";
+            string sql = "select * from " + attributeName + " order by " + attributeName;
             SQLiteCommand command = new SQLiteCommand(sql, dbconnection);
             SQLiteDataReader reader = command.ExecuteReader();
             while (reader.Read())
-
                 Console.WriteLine(attributeName + ": " + reader[attributeName] + "\tIDFQF: " + reader["idfqf"]);
 
+            CloseConnection();
+        }
+
+        public void ReadDatabase_Occurence(string attributeName)
+        {
+            OpenConnection(metadatastring);
+
+            string sql = "select * from " + attributeName;
+            SQLiteCommand command = new SQLiteCommand(sql, dbconnection);
+            SQLiteDataReader reader = command.ExecuteReader();
+
+
+            while (reader.Read())
+            {
+                string attribute = attributeName;
+                attribute=  attribute.Substring(0, attribute.Length - 10);
+                Console.WriteLine(attributeName + ": " + reader[attribute] + "\tID: " + reader["id"]);
+            }
             CloseConnection();
         }
 
@@ -134,7 +152,6 @@ namespace SQLite
         {
             CreateDatabaseFile(metadatastring);
 
-            string[] CatogoricalValues = { "cylinders", "model_year", "origin", "brand", "model","type" };
             ProgressMetadatabase.Maximum = CatogoricalValues.Length;
             ProgressMetadatabase.Value = 1;
             foreach(var s in CatogoricalValues)
@@ -185,6 +202,46 @@ namespace SQLite
 
             CloseConnection();
         }
+
+        public void FillMetaDBWithAttributeOccurence()
+        {
+            // Open query database
+            OpenConnection(cardatabasestring);
+
+            // List with <Attribute, Attribute value, query id> tuples
+            List<Tuple<string, string, int>> AttributeOccurence = new List<Tuple<string, string, int>>();
+
+            // Loop over all queries
+            string sql = "select * from autompg";
+            SQLiteCommand command = new SQLiteCommand(sql, dbconnection);
+            SQLiteDataReader reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                // Add all query attributes to list
+                foreach(string a in CatogoricalValues)
+                    AttributeOccurence.Add(Tuple.Create(a, reader[a].ToString(), int.Parse(reader["id"].ToString()))); 
+                
+            }
+
+            // Close
+            CloseConnection();
+            OpenConnection(metadatastring);
+
+
+            foreach (string a in CatogoricalValues)
+            {
+                ExecuteCommand("CREATE TABLE " + a + "_Occurence (" + a + " text, id integer)");
+            }
+
+
+            foreach (var t in AttributeOccurence )
+            {
+                ExecuteCommand("INSERT into " + t.Item1 + "_Occurence" + " VALUES ( '" + t.Item2 + "', '" + t.Item3 + "' );");
+            }
+
+            CloseConnection();
+        }
+
 
         //BuildDatabase from txt file
         public void BuildDatabase(string nameOfDatabase, string fileToLoadFrom)
