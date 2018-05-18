@@ -223,22 +223,19 @@ namespace SQLite
                 
             }
 
-            // Close
+            // Open connection with metadatabase
             CloseConnection();
             OpenConnection(metadatastring);
 
-
+            // Create Occurence tables
             foreach (string a in CatogoricalValues)
-            {
                 ExecuteCommand("CREATE TABLE " + a + "_Occurence (" + a + " text, id integer)");
-            }
 
-
+            // Fill Occurence tables with values from list
             foreach (var t in AttributeOccurence )
-            {
                 ExecuteCommand("INSERT into " + t.Item1 + "_Occurence" + " VALUES ( '" + t.Item2 + "', '" + t.Item3 + "' );");
-            }
-
+            
+            
             CloseConnection();
         }
 
