@@ -12,6 +12,7 @@ namespace SQLite
         const string metadatastring = "metadata.sqlite";
         const string cardatabasestring = "CarDatabase.sqlite";
 
+        //Read IDFQF value for attribute
         public void ReadDatabase( string attributeName)
         {
             OpenConnection(metadatastring);
@@ -26,11 +27,30 @@ namespace SQLite
             CloseConnection();
         }
 
+        //Print all IDFQF attributes that are in the metadatabase
+        public List<string> PrintMetadataTables()
+        {
+            List<string> tables = new List<string>();
+            string sql = "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY 1";
+            OpenConnection(metadatastring);
+            SQLiteCommand command = new SQLiteCommand(sql, dbconnection);
+            SQLiteDataReader reader = command.ExecuteReader();
+
+            while(reader.Read())
+            {
+                tables.Add((string)reader[0]); 
+            }
+          
+            CloseConnection();
+            return tables;
+
+        }
+
+        //QF Values
         private Dictionary<Tuple<string, string>, int> qfoccurrences = new Dictionary<Tuple<string, string>, int>();
         private int QFMax = 0;
 
-
-
+        //QF functions
         public void MakeQFDictionary()
         {
             if (qfoccurrences.Count > 1)
@@ -101,7 +121,6 @@ namespace SQLite
             }
             QFMax = max;
         }
-
         public void PrintQFDictionary()
         {
             foreach (var kvp in qfoccurrences)
@@ -110,25 +129,7 @@ namespace SQLite
             }
         }
 
-        public List<string> PrintMetadataTables()
-        {
-            List<string> tables = new List<string>();
-            string sql = "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY 1";
-            OpenConnection(metadatastring);
-            SQLiteCommand command = new SQLiteCommand(sql, dbconnection);
-            SQLiteDataReader reader = command.ExecuteReader();
-
-            while(reader.Read())
-            {
-                tables.Add((string)reader[0]); 
-            }
-          
-            CloseConnection();
-            return tables;
-
-        }
-
-
+        //Add all IDFQF attributes
         public void FillMetaDBWithIDFQF(System.Windows.Forms.ProgressBar ProgressMetadatabase )
         {
             CreateDatabaseFile(metadatastring);
@@ -143,7 +144,7 @@ namespace SQLite
             }
 
         }
-
+        //Add an attribute for IDFQF values
         public void FillMetaDBWithIDF(  string attributeName)
         {
             OpenConnection(cardatabasestring);
@@ -185,6 +186,7 @@ namespace SQLite
             CloseConnection();
         }
 
+        //BuildDatabase from txt file
         public void BuildDatabase(string nameOfDatabase, string fileToLoadFrom)
         {
             CreateDatabaseFile(nameOfDatabase);
@@ -198,23 +200,22 @@ namespace SQLite
             CloseConnection();
         }
 
+
+        //Database helpers
         private void ExecuteCommand(string com)
         {
             SQLiteCommand command = new SQLiteCommand(com, dbconnection);
             command.ExecuteNonQuery();
         }
-
         public void CreateDatabaseFile(string name)
         {
             SQLiteConnection.CreateFile(name);
         }
-
         private void OpenConnection(string name)
         {
             dbconnection = new SQLiteConnection("Data Source=" + name + ";Version=3;");
             dbconnection.Open();
         }
-
         private void CloseConnection()
         {
             dbconnection.Close();
