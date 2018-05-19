@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data.SQLite;
 using System.IO;
+using System.Linq;
 
 namespace SQLite
 {
@@ -18,7 +19,7 @@ namespace SQLite
         {
             OpenConnection(metadatastring);
 
-            string sql = "select * from " + attributeName + " order by " + attributeName;
+            string sql = "select * from " + attributeName + " order by idfqf" ;
             SQLiteCommand command = new SQLiteCommand(sql, dbconnection);
             SQLiteDataReader reader = command.ExecuteReader();
             while (reader.Read())
@@ -30,17 +31,17 @@ namespace SQLite
         public void ReadDatabase_Occurence(string attributeName)
         {
             OpenConnection(metadatastring);
-
-            string sql = "select * from " + attributeName;
+            string attribute = attributeName;
+            attribute = attribute.Substring(0, attribute.Length - 10);
+            string sql = "select * "  + "from " + attributeName + " ORDER BY " + attribute  ;
             SQLiteCommand command = new SQLiteCommand(sql, dbconnection);
             SQLiteDataReader reader = command.ExecuteReader();
 
 
             while (reader.Read())
             {
-                string attribute = attributeName;
-                attribute=  attribute.Substring(0, attribute.Length - 10);
-                Console.WriteLine(attributeName + ": " + reader[attribute] + "\tID: " + reader["id"]);
+                Console.WriteLine(reader[0].ToString()  + " " + reader[1].ToString());
+                //Console.WriteLine(attributeName + ": " + reader[attribute] + "\tID: " + reader["id"]);
             }
             CloseConnection();
         }
@@ -159,6 +160,7 @@ namespace SQLite
                 FillMetaDBWithIDF(s);
                 ProgressMetadatabase.PerformStep();
             }
+            FillMetaDBWithAttributeOccurence( ProgressMetadatabase);
 
         }
         //Add an attribute for IDFQF values
@@ -203,8 +205,11 @@ namespace SQLite
             CloseConnection();
         }
 
-        public void FillMetaDBWithAttributeOccurence()
+        public void FillMetaDBWithAttributeOccurence(System.Windows.Forms.ProgressBar ProgressMetadatabase)
         {
+          
+            ProgressMetadatabase.Value = 1;
+
             // Open query database
             OpenConnection(cardatabasestring);
 
@@ -231,10 +236,14 @@ namespace SQLite
             foreach (string a in CatogoricalValues)
                 ExecuteCommand("CREATE TABLE " + a + "_Occurence (" + a + " text, id integer)");
 
+            ProgressMetadatabase.Maximum = AttributeOccurence.Count;
             // Fill Occurence tables with values from list
-            foreach (var t in AttributeOccurence )
+            foreach (var t in AttributeOccurence)
+            {
+                //Console.WriteLine("inserting in " + t.Item1 + " : " + t.Item2 + " and " +t.Item3 );
                 ExecuteCommand("INSERT into " + t.Item1 + "_Occurence" + " VALUES ( '" + t.Item2 + "', '" + t.Item3 + "' );");
-            
+                ProgressMetadatabase.PerformStep();
+            }
             
             CloseConnection();
         }
@@ -253,6 +262,70 @@ namespace SQLite
             }
             CloseConnection();
         }
+
+
+        public void topK()
+        {
+            int k = 6;
+
+            List<Tuple<string, string>> terms = new List<Tuple<string, string>>();
+            Dictionary<int, Tuple<float,float>> buffer = new Dictionary<int, Tuple<float, float>>();
+
+            terms.Add(Tuple.Create( "brand", "volkswagen" ));
+            terms.Add(Tuple.Create("cylinders", "4"));
+
+            List<int> finalIDS = new List<int>();
+            List<float> MaxAttributes = new List<float>();
+
+            OpenConnection(metadatastring);
+
+            foreach (var t in terms) {
+
+                string sql = "select idfqf from " + t.Item1 + " order by idfqf DESC" ;
+                SQLiteCommand command = new SQLiteCommand(sql, dbconnection);
+                SQLiteDataReader reader = command.ExecuteReader();
+                MaxAttributes.Add( float.Parse((reader[0].ToString() )) );
+            }
+            float treshhold = MaxAttributes.Sum();
+
+            int i = 0;
+            foreach ( var t in terms)
+            {
+                
+                string sql = "select id from " + t.Item1 + "_Occurences order by "+t.Item1;
+                SQLiteCommand command = new SQLiteCommand(sql, dbconnection);
+                SQLiteDataReader reader = command.ExecuteReader();
+                while(reader.Read())
+                {
+                    buffer[int.Parse(reader[0].ToString())] = Tuple.Create(MaxAttributes[i], treshhold);
+                }
+                i++;
+            }
+
+            while(finalIDS.Count < k)
+            {
+                for(i = 0; i< terms.Count;i++)
+                {
+                    string sql = "select idfqf from " + terms[i].Item1 + " order by idfqf DESC";
+                    SQLiteCommand command = new SQLiteCommand(sql, dbconnection);
+                    SQLiteDataReader reader = command.ExecuteReader();
+                    MaxAttributes[i] = (float.Parse((reader[0].ToString())));
+                }
+
+
+
+
+
+
+
+
+
+            }
+
+            CloseConnection();
+        }
+
+
 
 
         //Database helpers

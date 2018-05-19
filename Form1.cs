@@ -19,6 +19,12 @@ namespace SQLite
         {
             db = d;
             InitializeComponent();
+            List<string> tables = db.PrintMetadataTables();
+            if (tables.Count > 0)
+            {
+                this.ProgressMetadatabase.Maximum = tables.Count;
+                this.ProgressMetadatabase.Value = tables.Count;
+            }
         }
 
         private void ButtonBuildQFDictionary_Click(object sender, EventArgs e)
@@ -34,10 +40,13 @@ namespace SQLite
 
         private void ButtonPrintMetadataTables_Click(object sender, EventArgs e)
         {
-         
+
+            comboBox1.Items.Clear();
             List<string> tables = db.PrintMetadataTables();
             foreach (var table in tables)
             {
+                Console.WriteLine(table);
+                
                 comboBox1.Items.Add(table);
                 
             }
@@ -46,11 +55,11 @@ namespace SQLite
 
         private void ButtonFillMetadatabase_Click(object sender, EventArgs e)
         {
-            var confirmResult = MessageBox.Show("Are you sure you want to rebuild the metadatabase, it might take some time?", "Confirm I have balls of steel", MessageBoxButtons.YesNo);
+            var confirmResult = MessageBox.Show("Are you sure you want to rebuild the metadatabase, it might take some time?", "Confirm", MessageBoxButtons.YesNo);
             if (confirmResult == DialogResult.Yes)
             {
                 db.FillMetaDBWithIDFQF(ProgressMetadatabase);
-                db.FillMetaDBWithAttributeOccurence();
+
             }
         }
         private void ComboBox1_SelectedValueChanged(object sender, EventArgs e)
@@ -67,6 +76,11 @@ namespace SQLite
 
             }
 
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            db.topK();
         }
     }
 }

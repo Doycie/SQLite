@@ -39,6 +39,7 @@ namespace SQLite
             this.ProgressMetadatabase = new System.Windows.Forms.ProgressBar();
             this.ButtonFillMetadatabase = new System.Windows.Forms.Button();
             this.GroupQF = new System.Windows.Forms.GroupBox();
+            this.button1 = new System.Windows.Forms.Button();
             this.GroupMeta.SuspendLayout();
             this.GroupQF.SuspendLayout();
             this.SuspendLayout();
@@ -87,7 +88,7 @@ namespace SQLite
             this.ButtonPrintMetadataTables.Text = "Retrieve Metadata tables";
             this.ButtonPrintMetadataTables.UseVisualStyleBackColor = true;
             this.ButtonPrintMetadataTables.Click += new System.EventHandler(this.ButtonPrintMetadataTables_Click);
-            //
+            // 
             // GroupMeta
             // 
             this.GroupMeta.BackColor = System.Drawing.SystemColors.Control;
@@ -122,12 +123,6 @@ namespace SQLite
             this.ProgressMetadatabase.Style = System.Windows.Forms.ProgressBarStyle.Continuous;
             this.ProgressMetadatabase.TabIndex = 5;
             this.ProgressMetadatabase.Value = 1;
-            List<string> tables = db.PrintMetadataTables();
-            if (tables.Count > 0)
-            { 
-                this.ProgressMetadatabase.Maximum = tables.Count;
-                this.ProgressMetadatabase.Value = tables.Count;
-            }
             // 
             // ButtonFillMetadatabase
             // 
@@ -152,11 +147,22 @@ namespace SQLite
             this.GroupQF.TabStop = false;
             this.GroupQF.Text = "QF Control Panel";
             // 
+            // button1
+            // 
+            this.button1.Location = new System.Drawing.Point(129, 286);
+            this.button1.Name = "button1";
+            this.button1.Size = new System.Drawing.Size(75, 23);
+            this.button1.TabIndex = 6;
+            this.button1.Text = "button1";
+            this.button1.UseVisualStyleBackColor = true;
+            this.button1.Click += new System.EventHandler(this.button1_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(992, 640);
+            this.Controls.Add(this.button1);
             this.Controls.Add(this.GroupQF);
             this.Controls.Add(this.GroupMeta);
             this.Name = "Form1";
@@ -179,5 +185,6 @@ namespace SQLite
         private System.Windows.Forms.ProgressBar ProgressMetadatabase;
         private System.Windows.Forms.Button ButtonFillMetadatabase;
         private System.Windows.Forms.ComboBox comboBox1;
+        private System.Windows.Forms.Button button1;
     }
 }
