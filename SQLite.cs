@@ -268,31 +268,38 @@ namespace SQLite
         {
             int k = 6;
 
+            //A list of tuples for the search terms, ex. <brand,volkswagen>
             List<Tuple<string, string>> terms = new List<Tuple<string, string>>();
+
+            //Buffer to hold an ID and the corresponding minimum and maximum values that ID can have so far
             Dictionary<int, Tuple<float,float>> buffer = new Dictionary<int, Tuple<float, float>>();
 
             terms.Add(Tuple.Create( "brand", "volkswagen" ));
             terms.Add(Tuple.Create("cylinders", "4"));
 
+            //List to hold the final top k result
             List<int> finalIDS = new List<int>();
+            //List to hold the current maximum values
             List<float> MaxAttributes = new List<float>();
 
             OpenConnection(metadatastring);
 
+            //Go over each term to add to the maximum list and the treshhold is them all added up
             foreach (var t in terms) {
 
-                string sql = "select idfqf from " + t.Item1 + " order by idfqf DESC" ;
+                string sql = "select idfqf from " + t.Item1 + " order by idfqf DESC limit 1" ;
                 SQLiteCommand command = new SQLiteCommand(sql, dbconnection);
                 SQLiteDataReader reader = command.ExecuteReader();
                 MaxAttributes.Add( float.Parse((reader[0].ToString() )) );
             }
             float treshhold = MaxAttributes.Sum();
 
+            //Go over the terms again to add them to the buffer, minimum value is that attributes value and maximum is the treshhold
             int i = 0;
             foreach ( var t in terms)
             {
                 
-                string sql = "select id from " + t.Item1 + "_Occurences order by "+t.Item1;
+                string sql = "select id from " + t.Item1 + "_Occurence WHERE  " + t.Item1 + "='" + t.Item2 + "'";
                 SQLiteCommand command = new SQLiteCommand(sql, dbconnection);
                 SQLiteDataReader reader = command.ExecuteReader();
                 while(reader.Read())
@@ -302,11 +309,22 @@ namespace SQLite
                 i++;
             }
 
+            foreach(var value in buffer)
+            {
+                if( value.Value.Item1 >= treshhold)
+                {
+                    finalIDS.Add(value.Key);
+                }
+            }
+
+          
+
+            //As long as we need more results
             while(finalIDS.Count < k)
             {
                 for(i = 0; i< terms.Count;i++)
                 {
-                    string sql = "select idfqf from " + terms[i].Item1 + " order by idfqf DESC";
+                    string sql = "select idfqf from " + t.Item1 + " order by idfqf DESC limit 1";
                     SQLiteCommand command = new SQLiteCommand(sql, dbconnection);
                     SQLiteDataReader reader = command.ExecuteReader();
                     MaxAttributes[i] = (float.Parse((reader[0].ToString())));
@@ -315,14 +333,30 @@ namespace SQLite
 
 
 
+            }
+            
+            CloseConnection();
 
+           
+            OpenConnection(cardatabasestring);
 
+            foreach (var v in finalIDS)
+            {
+                string sql = "select * from autompg WHERE id=" + v.ToString();
+                SQLiteCommand command = new SQLiteCommand(sql, dbconnection);
+                SQLiteDataReader reader = command.ExecuteReader();
 
+                for(int r = 0; r < reader.FieldCount;r++)
+                {
+                    Console.Write((string)reader[r].ToString() + ",");
+                }
 
+                Console.WriteLine();
 
             }
 
-            CloseConnection();
+
+
         }
 
 
