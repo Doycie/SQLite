@@ -149,7 +149,7 @@ namespace SQLite
         }
 
         //Add all IDFQF attributes
-        public void FillMetaDBWithIDFQF(System.Windows.Forms.ProgressBar ProgressMetadatabase )
+        public void FillMetaDBWithIDFQFAndOccurence(System.Windows.Forms.ProgressBar ProgressMetadatabase )
         {
             CreateDatabaseFile(metadatastring);
 
@@ -263,22 +263,39 @@ namespace SQLite
             CloseConnection();
         }
 
-
-        public void topK()
+        //The topK search function
+        public void topK(string search)
         {
-            int k = 6;
+
 
             //A list of tuples for the search terms, ex. <brand,volkswagen>
             List<Tuple<string, string>> terms = new List<Tuple<string, string>>();
 
+            //Default k value is this value plus one so 10
+            int k = 10;
+            string[] searchTerms = search.Split(',');
+
+            foreach (var st in searchTerms)
+            {
+                int offset = 0;
+                string[] searchTerm = st.Split();
+                if (searchTerm[0] == "")
+                    offset++;
+                if (searchTerm[offset + 0] == "k")
+                {
+                    k = int.Parse(searchTerm[offset + 2]) ;
+                }
+                else
+                {
+                    terms.Add(Tuple.Create(searchTerm[offset + 0], searchTerm[offset + 2]));
+                }
+
+            }
             //Buffer to hold an ID and the corresponding minimum and maximum values that ID can have so far
             Dictionary<int, Tuple<float,float>> buffer = new Dictionary<int, Tuple<float, float>>();
 
-            terms.Add(Tuple.Create( "brand", "volkswagen" ));
-            terms.Add(Tuple.Create("cylinders", "4"));
-
             //List to hold the final top k result
-            List<int> finalIDS = new List<int>();
+            List<Tuple<int,float>> finalIDS = new List<Tuple<int,float>>();
             //List to hold the current maximum values
             List<float> MaxAttributes = new List<float>();
 
@@ -299,7 +316,7 @@ namespace SQLite
             foreach ( var t in terms)
             {
                 
-                string sql = "select id from " + t.Item1 + "_Occurence WHERE  " + t.Item1 + "='" + t.Item2 + "'";
+                string sql = "select id from " + t.Item1 + "_Occurence WHERE  " + t.Item1 + "=" + t.Item2;
                 SQLiteCommand command = new SQLiteCommand(sql, dbconnection);
                 SQLiteDataReader reader = command.ExecuteReader();
                 while(reader.Read())
@@ -313,26 +330,60 @@ namespace SQLite
             {
                 if( value.Value.Item1 >= treshhold)
                 {
-                    finalIDS.Add(value.Key);
+                    finalIDS.Add(Tuple.Create(value.Key,value.Value.Item1));
                 }
             }
 
-          
 
+            int it = 1;
+            float oldthreshold = treshhold;
             //As long as we need more results
             while(finalIDS.Count < k)
             {
                 for(i = 0; i< terms.Count;i++)
                 {
-                    string sql = "select idfqf from " + t.Item1 + " order by idfqf DESC limit 1";
+                    string sql = "select idfqf from " + terms[i].Item1 + " order by idfqf DESC limit "+(it+1)+" offset " + it;
                     SQLiteCommand command = new SQLiteCommand(sql, dbconnection);
                     SQLiteDataReader reader = command.ExecuteReader();
                     MaxAttributes[i] = (float.Parse((reader[0].ToString())));
                 }
+                treshhold = MaxAttributes.Sum();
 
 
 
+                for(int j = 0; j < terms.Count; j++) { 
 
+                    string sql = "select id from " + terms[j].Item1 + "_Occurence WHERE  " + terms[j].Item1 + "=" + terms[j].Item2;
+                    SQLiteCommand command = new SQLiteCommand(sql, dbconnection);
+                    SQLiteDataReader reader = command.ExecuteReader();
+                    while (reader.Read())
+                    {
+                        int id = int.Parse(reader[0].ToString());
+
+                        if (buffer.ContainsKey(id))
+                        {
+                            buffer[id] = Tuple.Create(buffer[id].Item1 + MaxAttributes[j], oldthreshold);
+
+                        }
+                        else
+                        {
+                            buffer[id] = Tuple.Create(MaxAttributes[j], treshhold);
+                        }
+                    }
+                }
+
+
+                foreach (var value in buffer)
+                {
+                    if (value.Value.Item1 >= treshhold)
+                    {
+                        finalIDS.Add(Tuple.Create(value.Key, value.Value.Item1));
+                    }
+                }
+
+
+                oldthreshold = treshhold;
+                it++;
             }
             
             CloseConnection();
@@ -340,9 +391,11 @@ namespace SQLite
            
             OpenConnection(cardatabasestring);
 
-            foreach (var v in finalIDS)
-            {
-                string sql = "select * from autompg WHERE id=" + v.ToString();
+            Console.Clear();
+            finalIDS.Sort((x, y) => y.Item2.CompareTo(x.Item2));
+
+           for(int j = 0; j< k; j++) { 
+                string sql = "select * from autompg WHERE id=" + finalIDS[j].Item1.ToString();
                 SQLiteCommand command = new SQLiteCommand(sql, dbconnection);
                 SQLiteDataReader reader = command.ExecuteReader();
 
@@ -351,11 +404,11 @@ namespace SQLite
                     Console.Write((string)reader[r].ToString() + ",");
                 }
 
-                Console.WriteLine();
+                Console.WriteLine(" || score: " + finalIDS[j].Item2);
 
             }
 
-
+            CloseConnection();
 
         }
 

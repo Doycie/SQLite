@@ -30,58 +30,18 @@ namespace SQLite
         /// </summary>
         private void InitializeComponent()
         {
-            this.ProgressQFDictionary = new System.Windows.Forms.ProgressBar();
-            this.ButtonBuildQFDictionary = new System.Windows.Forms.Button();
-            this.ButtonPrintQFDictionary = new System.Windows.Forms.Button();
             this.ButtonPrintMetadataTables = new System.Windows.Forms.Button();
-            this.GroupMeta = new System.Windows.Forms.GroupBox();
-            this.comboBox1 = new System.Windows.Forms.ComboBox();
+            this.ComboBoxShowMDTable = new System.Windows.Forms.ComboBox();
             this.ProgressMetadatabase = new System.Windows.Forms.ProgressBar();
             this.ButtonFillMetadatabase = new System.Windows.Forms.Button();
-            this.GroupQF = new System.Windows.Forms.GroupBox();
-            this.button1 = new System.Windows.Forms.Button();
-            this.GroupMeta.SuspendLayout();
-            this.GroupQF.SuspendLayout();
+            this.ButtonSearch = new System.Windows.Forms.Button();
+            this.TextInputSearch = new System.Windows.Forms.TextBox();
+            this.label1 = new System.Windows.Forms.Label();
             this.SuspendLayout();
-            // 
-            // ProgressQFDictionary
-            // 
-            this.ProgressQFDictionary.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(192)))), ((int)(((byte)(0)))));
-            this.ProgressQFDictionary.Location = new System.Drawing.Point(16, 54);
-            this.ProgressQFDictionary.Maximum = 2;
-            this.ProgressQFDictionary.Minimum = 1;
-            this.ProgressQFDictionary.Name = "ProgressQFDictionary";
-            this.ProgressQFDictionary.Size = new System.Drawing.Size(354, 18);
-            this.ProgressQFDictionary.Step = 1;
-            this.ProgressQFDictionary.Style = System.Windows.Forms.ProgressBarStyle.Continuous;
-            this.ProgressQFDictionary.TabIndex = 0;
-            this.ProgressQFDictionary.Value = 1;
-            // 
-            // ButtonBuildQFDictionary
-            // 
-            this.ButtonBuildQFDictionary.BackColor = System.Drawing.SystemColors.Control;
-            this.ButtonBuildQFDictionary.Location = new System.Drawing.Point(16, 16);
-            this.ButtonBuildQFDictionary.Name = "ButtonBuildQFDictionary";
-            this.ButtonBuildQFDictionary.Size = new System.Drawing.Size(128, 32);
-            this.ButtonBuildQFDictionary.TabIndex = 1;
-            this.ButtonBuildQFDictionary.Text = "Make QF dictionary";
-            this.ButtonBuildQFDictionary.UseVisualStyleBackColor = false;
-            this.ButtonBuildQFDictionary.Click += new System.EventHandler(this.ButtonBuildQFDictionary_Click);
-            // 
-            // ButtonPrintQFDictionary
-            // 
-            this.ButtonPrintQFDictionary.BackColor = System.Drawing.SystemColors.Control;
-            this.ButtonPrintQFDictionary.Location = new System.Drawing.Point(160, 16);
-            this.ButtonPrintQFDictionary.Name = "ButtonPrintQFDictionary";
-            this.ButtonPrintQFDictionary.Size = new System.Drawing.Size(128, 32);
-            this.ButtonPrintQFDictionary.TabIndex = 2;
-            this.ButtonPrintQFDictionary.Text = "Print QF Dictionary";
-            this.ButtonPrintQFDictionary.UseVisualStyleBackColor = false;
-            this.ButtonPrintQFDictionary.Click += new System.EventHandler(this.ButtonPrintQFDictionary_Click);
             // 
             // ButtonPrintMetadataTables
             // 
-            this.ButtonPrintMetadataTables.Location = new System.Drawing.Point(16, 16);
+            this.ButtonPrintMetadataTables.Location = new System.Drawing.Point(12, 184);
             this.ButtonPrintMetadataTables.Name = "ButtonPrintMetadataTables";
             this.ButtonPrintMetadataTables.Size = new System.Drawing.Size(128, 32);
             this.ButtonPrintMetadataTables.TabIndex = 3;
@@ -89,36 +49,22 @@ namespace SQLite
             this.ButtonPrintMetadataTables.UseVisualStyleBackColor = true;
             this.ButtonPrintMetadataTables.Click += new System.EventHandler(this.ButtonPrintMetadataTables_Click);
             // 
-            // GroupMeta
+            // ComboBoxShowMDTable
             // 
-            this.GroupMeta.BackColor = System.Drawing.SystemColors.Control;
-            this.GroupMeta.Controls.Add(this.comboBox1);
-            this.GroupMeta.Controls.Add(this.ProgressMetadatabase);
-            this.GroupMeta.Controls.Add(this.ButtonFillMetadatabase);
-            this.GroupMeta.Controls.Add(this.ButtonPrintMetadataTables);
-            this.GroupMeta.Location = new System.Drawing.Point(22, 116);
-            this.GroupMeta.Name = "GroupMeta";
-            this.GroupMeta.Size = new System.Drawing.Size(384, 128);
-            this.GroupMeta.TabIndex = 4;
-            this.GroupMeta.TabStop = false;
-            this.GroupMeta.Text = "Metadata Control Panel";
-            // 
-            // comboBox1
-            // 
-            this.comboBox1.FormattingEnabled = true;
-            this.comboBox1.Location = new System.Drawing.Point(150, 19);
-            this.comboBox1.Name = "comboBox1";
-            this.comboBox1.Size = new System.Drawing.Size(144, 21);
-            this.comboBox1.TabIndex = 6;
-            this.comboBox1.SelectedValueChanged += new System.EventHandler(this.ComboBox1_SelectedValueChanged);
+            this.ComboBoxShowMDTable.FormattingEnabled = true;
+            this.ComboBoxShowMDTable.Location = new System.Drawing.Point(12, 221);
+            this.ComboBoxShowMDTable.Name = "ComboBoxShowMDTable";
+            this.ComboBoxShowMDTable.Size = new System.Drawing.Size(128, 21);
+            this.ComboBoxShowMDTable.TabIndex = 6;
+            this.ComboBoxShowMDTable.SelectedValueChanged += new System.EventHandler(this.ComboBox1_SelectedValueChanged);
             // 
             // ProgressMetadatabase
             // 
             this.ProgressMetadatabase.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(192)))), ((int)(((byte)(0)))));
-            this.ProgressMetadatabase.Location = new System.Drawing.Point(16, 102);
+            this.ProgressMetadatabase.Location = new System.Drawing.Point(146, 221);
             this.ProgressMetadatabase.Minimum = 1;
             this.ProgressMetadatabase.Name = "ProgressMetadatabase";
-            this.ProgressMetadatabase.Size = new System.Drawing.Size(354, 20);
+            this.ProgressMetadatabase.Size = new System.Drawing.Size(286, 20);
             this.ProgressMetadatabase.Step = 1;
             this.ProgressMetadatabase.Style = System.Windows.Forms.ProgressBarStyle.Continuous;
             this.ProgressMetadatabase.TabIndex = 5;
@@ -126,65 +72,68 @@ namespace SQLite
             // 
             // ButtonFillMetadatabase
             // 
-            this.ButtonFillMetadatabase.Location = new System.Drawing.Point(16, 64);
+            this.ButtonFillMetadatabase.Location = new System.Drawing.Point(146, 183);
             this.ButtonFillMetadatabase.Name = "ButtonFillMetadatabase";
-            this.ButtonFillMetadatabase.Size = new System.Drawing.Size(278, 32);
+            this.ButtonFillMetadatabase.Size = new System.Drawing.Size(286, 32);
             this.ButtonFillMetadatabase.TabIndex = 4;
-            this.ButtonFillMetadatabase.Text = "Fill Metadatabase with all catogorical attributes";
+            this.ButtonFillMetadatabase.Text = "Create metadatbase";
             this.ButtonFillMetadatabase.UseVisualStyleBackColor = true;
             this.ButtonFillMetadatabase.Click += new System.EventHandler(this.ButtonFillMetadatabase_Click);
             // 
-            // GroupQF
+            // ButtonSearch
             // 
-            this.GroupQF.BackColor = System.Drawing.SystemColors.Control;
-            this.GroupQF.Controls.Add(this.ButtonBuildQFDictionary);
-            this.GroupQF.Controls.Add(this.ButtonPrintQFDictionary);
-            this.GroupQF.Controls.Add(this.ProgressQFDictionary);
-            this.GroupQF.Location = new System.Drawing.Point(22, 12);
-            this.GroupQF.Name = "GroupQF";
-            this.GroupQF.Size = new System.Drawing.Size(384, 98);
-            this.GroupQF.TabIndex = 5;
-            this.GroupQF.TabStop = false;
-            this.GroupQF.Text = "QF Control Panel";
+            this.ButtonSearch.Location = new System.Drawing.Point(357, 83);
+            this.ButtonSearch.Name = "ButtonSearch";
+            this.ButtonSearch.Size = new System.Drawing.Size(75, 23);
+            this.ButtonSearch.TabIndex = 6;
+            this.ButtonSearch.Text = "Search";
+            this.ButtonSearch.UseVisualStyleBackColor = true;
+            this.ButtonSearch.Click += new System.EventHandler(this.button1_Click);
             // 
-            // button1
+            // TextInputSearch
             // 
-            this.button1.Location = new System.Drawing.Point(129, 286);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(75, 23);
-            this.button1.TabIndex = 6;
-            this.button1.Text = "button1";
-            this.button1.UseVisualStyleBackColor = true;
-            this.button1.Click += new System.EventHandler(this.button1_Click);
+            this.TextInputSearch.Location = new System.Drawing.Point(12, 83);
+            this.TextInputSearch.Name = "TextInputSearch";
+            this.TextInputSearch.Size = new System.Drawing.Size(339, 20);
+            this.TextInputSearch.TabIndex = 7;
+            // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Location = new System.Drawing.Point(13, 13);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(255, 39);
+            this.label1.TabIndex = 8;
+            this.label1.Text = "To search input a search querry in the following way:\r\nk = 6, brand = \'volkswagen" +
+    "\';\r\ncylinders = 4, brand = \'ford\';";
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(992, 640);
-            this.Controls.Add(this.button1);
-            this.Controls.Add(this.GroupQF);
-            this.Controls.Add(this.GroupMeta);
+            this.ClientSize = new System.Drawing.Size(441, 254);
+            this.Controls.Add(this.label1);
+            this.Controls.Add(this.ComboBoxShowMDTable);
+            this.Controls.Add(this.TextInputSearch);
+            this.Controls.Add(this.ButtonPrintMetadataTables);
+            this.Controls.Add(this.ProgressMetadatabase);
+            this.Controls.Add(this.ButtonSearch);
+            this.Controls.Add(this.ButtonFillMetadatabase);
             this.Name = "Form1";
-            this.Text = "Form1";
-            this.GroupMeta.ResumeLayout(false);
-            this.GroupQF.ResumeLayout(false);
+            this.Text = "Database";
             this.ResumeLayout(false);
+            this.PerformLayout();
 
         }
 
         #endregion
 
-        private System.Windows.Forms.GroupBox GroupQF;
-        private System.Windows.Forms.ProgressBar ProgressQFDictionary;
-        private System.Windows.Forms.Button ButtonBuildQFDictionary;
-        private System.Windows.Forms.Button ButtonPrintQFDictionary;
-
-        private System.Windows.Forms.GroupBox GroupMeta;
         private System.Windows.Forms.Button ButtonPrintMetadataTables;
         private System.Windows.Forms.ProgressBar ProgressMetadatabase;
         private System.Windows.Forms.Button ButtonFillMetadatabase;
-        private System.Windows.Forms.ComboBox comboBox1;
-        private System.Windows.Forms.Button button1;
+        private System.Windows.Forms.ComboBox ComboBoxShowMDTable;
+        private System.Windows.Forms.Button ButtonSearch;
+        private System.Windows.Forms.TextBox TextInputSearch;
+        private System.Windows.Forms.Label label1;
     }
 }
