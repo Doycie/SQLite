@@ -13,44 +13,51 @@ namespace SQLite
         const string metadatastring = "metadata.sqlite";
         const string cardatabasestring = "CarDatabase.sqlite";
         string[] CatogoricalValues = { "cylinders", "model_year", "origin", "brand", "model", "type" };
+        string[] NumericValues = { "mpg", "displacement", "horsepower", "weight", "acceleration" };
 
-        //Read IDFQF value for attribute
-        public void ReadDatabase_IDFQF( string attributeName)
+
+
+        public void readDatabase(string tableName)
         {
             OpenConnection(metadatastring);
-
-            string sql = "select * from " + attributeName + " order by idfqf" ;
+            
+            // Open table
+            string sql = "select * from " + tableName;
             SQLiteCommand command = new SQLiteCommand(sql, dbconnection);
             SQLiteDataReader reader = command.ExecuteReader();
-            while (reader.Read())
-                Console.WriteLine(attributeName + ": " + reader[attributeName] + "\tIDFQF: " + reader["idfqf"]);
-
-            CloseConnection();
-        }
-
-        public void ReadDatabase_Occurence(string attributeName)
-        {
-            OpenConnection(metadatastring);
-            string attribute = attributeName;
-            attribute = attribute.Substring(0, attribute.Length - 10);
-            string sql = "select * "  + "from " + attributeName + " ORDER BY " + attribute  ;
-            SQLiteCommand command = new SQLiteCommand(sql, dbconnection);
-            SQLiteDataReader reader = command.ExecuteReader();
-
-
-            while (reader.Read())
+            
+            // Extract  attribute name from table name and add correct valuetype
+            string attributeName;
+            string column1;
+            if (tableName.EndsWith("_Occurence"))
             {
-                Console.WriteLine(reader[0].ToString()  + " " + reader[1].ToString());
-                //Console.WriteLine(attributeName + ": " + reader[attribute] + "\tID: " + reader["id"]);
+                attributeName = tableName.Substring(0, tableName.Length - 10);
+                column1 = "\tdocument id: ";
             }
+            else if (tableName.EndsWith("Values")) {
+                attributeName = tableName.Substring(0, tableName.Length - 15);
+                column1 = "\ttimes ";
+            }
+            else
+            {
+                attributeName = tableName;
+                column1 = "\tidfqf: ";
+            }
+            
+            // Print all values
+            while (reader.Read())
+                Console.WriteLine(attributeName + " value: " + reader[0] + column1 + reader[1]);
+
             CloseConnection();
         }
+ 
 
         //Print all IDFQF attributes that are in the metadatabase
         public List<string> PrintMetadataTables()
         {
             List<string> tables = new List<string>();
             string sql = "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY 1";
+
             OpenConnection(metadatastring);
             SQLiteCommand command = new SQLiteCommand(sql, dbconnection);
             SQLiteDataReader reader = command.ExecuteReader();
@@ -80,46 +87,61 @@ namespace SQLite
             StreamReader sr = new StreamReader("workload.txt");
             string input;
 
+            // Skip first two lines
             input = sr.ReadLine();
             input = sr.ReadLine();
 
+            // Read all lines
             while ((input = sr.ReadLine()) != null)
-            {
-                int position = 0;
-
+            {               
+                // Splits on white spaces
                 string[] inputSplit = input.Split();
 
+                // Keep track of number of parsed words
+                int position = 0;
+
+                // First item is times searched
                 int times = int.Parse(inputSplit[0]);
 
-                while (inputSplit[position] != "WHERE")
-                {
+                // Skip till WHERE
+                while (inputSplit[position] != "WHERE")                
                     position++;
-                }
-
+                
+                // Read rest of line
                 while (position < inputSplit.Length - 1)
-                {
+                {                
+                    // Parsing changes when IN occures
                     if (inputSplit[position + 2] == "IN" )
                     {
-                        
+                        // Remove brackets
                         string cats = inputSplit[position + 3];
                         cats = cats.TrimStart('(');
                         cats = cats.TrimEnd(')');
 
+                        // Get all attribute values
                         string[] inputSplit2 = cats.Split(',');
-
-                        foreach (var l in inputSplit2)
-                        {
-                            var key = Tuple.Create(inputSplit[position + 1], l);
+                        
+                        foreach (var i in inputSplit2)
+                        {       
+                            // Remove '' from start and end
+                            string t = i.Substring(1, i.Length - 2);
+                            
+                            // Add attribute, value pair to dictionary
+                            var key = Tuple.Create(inputSplit[position + 1], t);
                             if (qfoccurrences.ContainsKey(key))
                                 qfoccurrences[key] += times;
                             else
                                 qfoccurrences.Add(key, times);
                         }
-                            position += 4;
+                        position += 4;
                     }
                     else
                     {
-                        var key = Tuple.Create(inputSplit[position + 1], inputSplit[position + 3]);
+                        // Remove '' from start and end
+                        string t = inputSplit[position + 3].Substring(1, inputSplit[position + 3].Length - 2);
+                        
+                        // Add attribute, value pair to dictionary
+                        var key = Tuple.Create(inputSplit[position + 1], t);
                         if (qfoccurrences.ContainsKey(key))
                             qfoccurrences[key] += times;
                         else
@@ -129,16 +151,15 @@ namespace SQLite
                 }
             }
 
+            // Get highest attribute value occurence
             int max = 0;
-
             foreach (int value in qfoccurrences.Values)
             {
-                if (value > max)
-                {
-                    max = value;
-                }
+                if (value > max)                
+                    max = value;                
             }
             QFMax = max;
+
         }
         public void PrintQFDictionary()
         {
@@ -148,23 +169,39 @@ namespace SQLite
             }
         }
 
-        //Add all IDFQF attributes
-        public void FillMetaDBWithIDFQFAndOccurence(System.Windows.Forms.ProgressBar ProgressMetadatabase )
+        //Create meta database and add attribute tables for IDFQF and Occurence in database
+        public void fillMetaDB(System.Windows.Forms.ProgressBar ProgressMetadatabase )
         {
+            // Create meta database
             CreateDatabaseFile(metadatastring);
 
-            ProgressMetadatabase.Maximum = CatogoricalValues.Length;
+            // Use visual progress bar
+            ProgressMetadatabase.Maximum = CatogoricalValues.Length + NumericValues.Length;
             ProgressMetadatabase.Value = 1;
-            foreach(var s in CatogoricalValues)
+
+            // Add occurence to meta database
+            FillMetaDBWithAttributeOccurence(ProgressMetadatabase);
+
+            // Add categorical attributes
+            foreach (var c in CatogoricalValues)
             {
-                FillMetaDBWithIDF(s);
+                addCategoricIDFQFTable(c);
                 ProgressMetadatabase.PerformStep();
             }
-            FillMetaDBWithAttributeOccurence( ProgressMetadatabase);
+
+            
+            // Add numeric attributes
+            foreach (var n in NumericValues)
+            {
+                addNumericValuesTable(n);
+                ProgressMetadatabase.PerformStep();
+            }  
+            
 
         }
-        //Add an attribute for IDFQF values
-        public void FillMetaDBWithIDF(  string attributeName)
+
+        // Add categoric IDF*QF values to meta database
+        public void addCategoricIDFQFTable(string attributeName)
         {
             OpenConnection(cardatabasestring);
 
@@ -193,7 +230,7 @@ namespace SQLite
             foreach (KeyValuePair<string, int> vp in occurrences)
             {
                 float qf = 1;
-                Tuple<string, string> key = Tuple.Create(attributeName, "'" + vp.Key + "'");
+                Tuple<string, string> key = Tuple.Create(attributeName, vp.Key);
                 if (qfoccurrences.ContainsKey(key))
                 {
                     qf = (float)(qfoccurrences[key] + 1) / (float)(QFMax + 1);
@@ -205,9 +242,93 @@ namespace SQLite
             CloseConnection();
         }
 
-        public void FillMetaDBWithAttributeOccurence(System.Windows.Forms.ProgressBar ProgressMetadatabase)
+        // Add all numeric values to meta database
+        public void addNumericValuesTable (string attributeName)
         {
-          
+            OpenConnection(cardatabasestring);
+
+            // Keep track of every value t's number of occurrences
+            Dictionary<double, int> uniqueValues = new Dictionary<double, int>();
+
+            // Count occurrences
+            string sql = "select * from autompg";
+            SQLiteCommand command = new SQLiteCommand(sql, dbconnection);
+            SQLiteDataReader reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                double t = (double)reader[attributeName];
+                
+                // Existing t
+                if (uniqueValues.ContainsKey(t))                
+                    uniqueValues[t] += 1;
+                // New t
+                else                
+                    uniqueValues.Add(t, 1);
+            }
+
+            // Open connection to meta database
+            CloseConnection();
+            OpenConnection(metadatastring);
+
+            // Add attribute value t and its number of occurrences in database to table
+            ExecuteCommand("CREATE TABLE " + attributeName + "_databaseValues (t double, occurrences integer)");
+
+            // Fill table
+            foreach (var kv in uniqueValues)            
+                ExecuteCommand("INSERT into " + attributeName + "_databaseValues VALUES (" + kv.Key + ", " + kv.Value + " );");
+
+            // Add attribute value t and its number of occurrences in workload to table
+            ExecuteCommand("CREATE TABLE " + attributeName + "_workloadValues (t double, occurrences integer)");
+
+            // Fill table
+            foreach (var kv in qfoccurrences)
+            {
+                // Search for corresponding attribute name
+                if (kv.Key.Item1.Equals(attributeName))   
+                    ExecuteCommand("INSERT into " + attributeName + "_workloadValues VALUES (" + Convert.ToDouble(kv.Key.Item2) + ", " + kv.Value + ");");                
+            }
+
+            CloseConnection();            
+        }
+
+        // Calculate IDF or QF and bandwith for q 
+        public Tuple<double, double> numericSmooth(Dictionary<double, int> tValues, double qValue) {
+
+            List<double> allTValues = new List<double>();
+            
+            // Add every value the correct amount of times
+            foreach(var vk in tValues)
+            {
+                for (int i = 0; i < vk.Value; i++)
+                    allTValues.Add(vk.Key);
+            }
+
+            // Get average      
+            double avg = allTValues.Average();
+
+            // Calculate number of elements and standard deviation  
+            double sum = 0;
+            foreach (double ti in allTValues)            
+                sum += Math.Pow(ti - avg, 2);            
+
+            int n = allTValues.Count;
+            double sd = Math.Sqrt((sum) / n);
+
+            // Calculate bandwith h
+            double h = 1.06* sd * Math.Pow(n, -0.2);            
+           
+            sum = 0;
+            foreach (double ti in allTValues)
+                sum += Math.Pow(Math.E, -0.5 * Math.Pow((ti - qValue) / h, 2));
+
+            // Add pair to dictionary
+            return Tuple.Create(Math.Log(n / sum), h);
+           
+        }
+
+        // Get attribute occurence from database and add as table to the meta database
+        public void FillMetaDBWithAttributeOccurence(System.Windows.Forms.ProgressBar ProgressMetadatabase)
+        {          
             ProgressMetadatabase.Value = 1;
 
             // Open query database
@@ -223,9 +344,10 @@ namespace SQLite
             while (reader.Read())
             {
                 // Add all query attributes to list
-                foreach(string a in CatogoricalValues)
-                    AttributeOccurence.Add(Tuple.Create(a, reader[a].ToString(), int.Parse(reader["id"].ToString()))); 
-                
+                foreach(string c in CatogoricalValues)
+                    AttributeOccurence.Add(Tuple.Create(c, reader[c].ToString(), int.Parse(reader["id"].ToString()))); 
+                foreach(string n in NumericValues)
+                    AttributeOccurence.Add(Tuple.Create(n, reader[n].ToString(), int.Parse(reader["id"].ToString())));
             }
 
             // Open connection with metadatabase
@@ -233,22 +355,24 @@ namespace SQLite
             OpenConnection(metadatastring);
 
             // Create Occurence tables
-            foreach (string a in CatogoricalValues)
-                ExecuteCommand("CREATE TABLE " + a + "_Occurence (" + a + " text, id integer)");
+            foreach (string c in CatogoricalValues)
+                ExecuteCommand("CREATE TABLE " + c + "_Occurence (" + c + " text, id integer)");
+            foreach (string n in NumericValues)
+                ExecuteCommand("CREATE TABLE " + n + "_Occurence (" + n + " double, id integer)");
+
 
             ProgressMetadatabase.Maximum = AttributeOccurence.Count;
+            
             // Fill Occurence tables with values from list
             foreach (var t in AttributeOccurence)
             {
-                //Console.WriteLine("inserting in " + t.Item1 + " : " + t.Item2 + " and " +t.Item3 );
                 ExecuteCommand("INSERT into " + t.Item1 + "_Occurence" + " VALUES ( '" + t.Item2 + "', '" + t.Item3 + "' );");
                 ProgressMetadatabase.PerformStep();
             }
             
             CloseConnection();
         }
-
-
+        
         //BuildDatabase from txt file
         public void BuildDatabase(string nameOfDatabase, string fileToLoadFrom)
         {
@@ -263,11 +387,150 @@ namespace SQLite
             CloseConnection();
         }
 
+        // Get sorted S(t, q) for every document given a catigorical attribute value q
+        public List<KeyValuePair<int, double>> catigoricalSimilarity(string attributeName, string attributeValue)
+        {
+            OpenConnection(metadatastring);
+
+            // Get idf*qf value of given attribute value
+            string sql = "select * from " + attributeName + " WHERE " + attributeName + " == '" + attributeValue + "'";
+            SQLiteCommand command = new SQLiteCommand(sql, dbconnection);
+            SQLiteDataReader reader = command.ExecuteReader();
+            reader.Read();
+            double idfqf = Convert.ToDouble(reader["idfqf"]);
+
+            // <t value, occurrence> pairs from database 
+            Dictionary<int, double> similarity = new Dictionary<int, double>();
+
+            // Get all documents containg the given attribute value
+            sql = "select * from " + attributeName + "_Occurence WHERE " + attributeName + " == '" + attributeValue + "' order by id";
+            command = new SQLiteCommand(sql, dbconnection);
+            reader = command.ExecuteReader();
+            int expectedID = 1;
+            while (reader.Read())
+            {
+                // Documents with different attribute value get similarity 0
+                while (Convert.ToInt16(reader["id"]) > expectedID)
+                {
+                    similarity.Add(expectedID, 0);
+                    expectedID++;
+                }
+
+                similarity.Add(Convert.ToInt16(reader["id"]), idfqf);
+                expectedID = Convert.ToInt16(reader["id"]) + 1;
+            }
+            CloseConnection();
+
+            // Sort on similarity and return
+            return (from kv in similarity orderby kv.Value descending select kv).ToList();           
+        }
+
+        // Get sorted S(T, Q) for every document given a numeric attribute value q
+        public List<KeyValuePair<int, double>> numericSimilarity(string attributeName, double attributeValue)
+        {
+            OpenConnection(metadatastring);
+
+            // <t value, occurrence> pairs from database 
+            Dictionary<double, int> databaseValues = new Dictionary<double, int>();
+
+            // Add all values from table to dictionary
+            string sql = "select * from " + attributeName + "_databaseValues";
+            SQLiteCommand command = new SQLiteCommand(sql, dbconnection);
+            SQLiteDataReader reader = command.ExecuteReader();
+            while (reader.Read())            
+                databaseValues.Add(Convert.ToDouble(reader["t"]), Convert.ToInt16(reader["occurrences"]));            
+
+            // <t value, occurrence> pairs from workload 
+            Dictionary<double, int> workloadValues = new Dictionary<double, int>();
+
+            // Add all values from table to dictionary
+            sql = "select * from " + attributeName + "_workloadValues";
+            command = new SQLiteCommand(sql, dbconnection);
+            reader = command.ExecuteReader();
+            while (reader.Read())            
+                workloadValues.Add(Convert.ToDouble(reader["t"]), Convert.ToInt16(reader["occurrences"]));
+                        
+
+            // Calculate IDF, QF and bandwith for given value
+            Tuple<double, double> idfh = numericSmooth(databaseValues, attributeValue);
+            Tuple<double, double> qfh = numericSmooth(workloadValues, attributeValue);
+
+            // Get IDFQF value and database bandwith
+            double idfqf = idfh.Item1 * qfh.Item1;
+            double h = idfh.Item2;
+
+            // <id, similarity> pairs
+            Dictionary<int, double> similarity = new Dictionary<int, double>();            
+
+            // Loop over every document with a value for the given attribute
+            sql = "select * from " + attributeName + "_Occurence ORDER BY id";
+            command = new SQLiteCommand(sql, dbconnection);
+            reader = command.ExecuteReader();
+            int expectedID = 1;
+            while (reader.Read())
+            {
+                // Documents without attribute get similarity 0
+                while(Convert.ToInt16(reader["id"]) > expectedID)
+                {
+                    similarity.Add(expectedID, 0);
+                    expectedID++;
+                }
+
+                // Calculate similarity
+                similarity.Add(Convert.ToInt16(reader["id"]), Math.Pow(Math.E, -0.5 * Math.Pow((Convert.ToDouble(reader[attributeName]) - attributeValue) / h, 2)) * idfqf);
+                expectedID = Convert.ToInt16(reader["id"]) + 1;
+            }
+            CloseConnection();
+                        
+            // Sort on similarity and return
+            return (from kv in similarity orderby kv.Value descending select kv).ToList();
+        }
+
         //The topK search function
         public void topK(string search)
         {
+            // test querietje      brand = 'ford', cylinders = 4, mpg = 18;
+
+            // List containing every similarity between document attribute values and query attribute value, for every attribute in query
+            List<List<KeyValuePair<int, double>>> attributeSimilarities = new List<List<KeyValuePair<int, double>>>();
+
+            // Add whitespace and remove ; for easier parsing
+            search = " " + search.Substring(0, search.Length - 1);
+            
+            // Get seperate attribute = value parts
+            foreach(string attribute in search.Split(','))
+            {
+                // Get attribute name and value
+                string attributeName = attribute.Split()[1];
+                string attributeValue = attribute.Split()[3].Replace("\'", "");
+
+                // Add similarity between attributeValue and every document to the list
+                if (CatogoricalValues.Contains(attributeName))
+                    attributeSimilarities.Add(catigoricalSimilarity(attributeName, attributeValue));
+                else if (NumericValues.Contains(attributeName))
+                    attributeSimilarities.Add(numericSimilarity(attributeName, Convert.ToDouble(attributeValue)));
+                else
+                    Console.WriteLine("'" + attributeName + "' is not a valid attribute");
+            }
+            
 
 
+            // test printje
+            foreach(List<KeyValuePair<int, double>> attributeSimilarity in attributeSimilarities){
+                foreach (KeyValuePair<int, double> kv in attributeSimilarity)
+                {
+                    Console.WriteLine("document id: " + kv.Key + " similarity: " + kv.Value);
+                }
+
+                Console.WriteLine("--------------------------------");
+                Console.WriteLine("--------------------------------");
+                Console.WriteLine("--------------------------------");
+            }
+
+
+
+            //////////////////////////////////////////////////////////////////////
+            /*
             //A list of tuples for the search terms, ex. <brand,volkswagen>
             List<Tuple<string, string>> terms = new List<Tuple<string, string>>();
 
@@ -291,6 +554,7 @@ namespace SQLite
                 }
 
             }
+
             //Buffer to hold an ID and the corresponding minimum and maximum values that ID can have so far
             Dictionary<int, Tuple<float,float>> buffer = new Dictionary<int, Tuple<float, float>>();
 
@@ -391,7 +655,7 @@ namespace SQLite
            
             OpenConnection(cardatabasestring);
 
-            Console.Clear();
+            //Console.Clear();
             finalIDS.Sort((x, y) => y.Item2.CompareTo(x.Item2));
 
            for(int j = 0; j< k; j++) { 
@@ -405,11 +669,11 @@ namespace SQLite
                 }
 
                 Console.WriteLine(" || score: " + finalIDS[j].Item2);
-
+                
             }
 
             CloseConnection();
-
+            */
         }
 
 
@@ -434,5 +698,6 @@ namespace SQLite
         {
             dbconnection.Close();
         }
+        
     }
 }

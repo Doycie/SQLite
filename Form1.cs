@@ -20,6 +20,7 @@ namespace SQLite
             }
         }
 
+        
         private void ButtonPrintMetadataTables_Click(object sender, EventArgs e)
         {
             ComboBoxShowMDTable.Items.Clear();
@@ -38,22 +39,15 @@ namespace SQLite
             if (confirmResult == DialogResult.Yes)
             {
                 db.MakeQFDictionary();
-                db.FillMetaDBWithIDFQFAndOccurence(ProgressMetadatabase);
+                db.fillMetaDB(ProgressMetadatabase);
             }
         }
 
         private void ComboBox1_SelectedValueChanged(object sender, EventArgs e)
         {
             string selectedItem = (string)ComboBoxShowMDTable.SelectedItem;
-            if (selectedItem.EndsWith("_Occurence"))
-            {
-                db.ReadDatabase_Occurence(selectedItem);
-            }
-            else
-            {
-                Console.WriteLine(selectedItem);
-                db.ReadDatabase_IDFQF(selectedItem);
-            }
+            db.readDatabase(selectedItem);
+         
         }
 
         private void button1_Click(object sender, EventArgs e)
