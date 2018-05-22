@@ -12,7 +12,7 @@ namespace SQLite
         {
             db = d;
             InitializeComponent();
-            List<string> tables = db.PrintMetadataTables();
+            List<string> tables = db.GetMetadataTables();
             if (tables.Count > 0)
             {
                 this.ProgressMetadatabase.Maximum = tables.Count;
@@ -24,7 +24,7 @@ namespace SQLite
         private void ButtonPrintMetadataTables_Click(object sender, EventArgs e)
         {
             ComboBoxShowMDTable.Items.Clear();
-            List<string> tables = db.PrintMetadataTables();
+            List<string> tables = db.GetMetadataTables();
             foreach (var table in tables)
             {
                 Console.WriteLine(table);
@@ -50,9 +50,21 @@ namespace SQLite
          
         }
 
+        private void TextBoxKeyUp(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                db.topK(TextInputSearch.Text, dataGridView1,SearchLabel);
+                e.Handled = true;
+                e.SuppressKeyPress = true;
+            }
+        }
+
         private void button1_Click(object sender, EventArgs e)
         {
-            db.topK(TextInputSearch.Text);
+            db.topK(TextInputSearch.Text, dataGridView1 , SearchLabel);
         }
+
+
     }
 }

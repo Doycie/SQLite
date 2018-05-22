@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data.SQLite;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 
@@ -14,6 +15,7 @@ namespace SQLite
         private const string cardatabasestring = "CarDatabase.sqlite";
         private string[] CatogoricalValues = { "cylinders", "model_year", "origin", "brand", "model", "type" };
         private string[] NumericValues = { "mpg", "displacement", "horsepower", "weight", "acceleration" };
+        private string[] AllValues = { "id", "mpg", "cylinders", "displacement", "horsepower", "weight", "acceleration", "model_year", "origin", "brand", "model", "type" };
 
         public void readDatabase(string tableName)
         {
@@ -51,7 +53,7 @@ namespace SQLite
         }
 
         //Print all IDFQF attributes that are in the metadatabase
-        public List<string> PrintMetadataTables()
+        public List<string> GetMetadataTables()
         {
             List<string> tables = new List<string>();
             string sql = "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY 1";
@@ -287,7 +289,7 @@ namespace SQLite
         }
 
         // Calculate IDF or QF and bandwith for q
-        public Tuple<double, double> numericSmooth( List<Tuple<double, int>> tValues, double qValue)
+        public Tuple<double, double> numericSmooth(List<Tuple<double, int>> tValues, double qValue)
         {
             List<double> allTValues = new List<double>();
 
@@ -391,7 +393,7 @@ namespace SQLite
             SQLiteCommand command = new SQLiteCommand(sql, dbconnection);
             SQLiteDataReader reader = command.ExecuteReader();
             reader.Read();
-            double idfqf =  double.Parse((reader["idfqf"].ToString()));
+            double idfqf = double.Parse((reader["idfqf"].ToString()));
 
             // <t value, occurrence> pairs from database
             List<Tuple<int, double>> similarity = new List<Tuple<int, double>>();
@@ -436,8 +438,8 @@ namespace SQLite
                 workloadValues.Add(Tuple.Create(double.Parse(reader["t"].ToString()), int.Parse(reader["occurrences"].ToString())));
 
             // Calculate IDF, QF and bandwith for given value
-            Tuple<double, double> idfh = numericSmooth( databaseValues, attributeValue);
-            Tuple<double, double> qfh = numericSmooth( workloadValues, attributeValue);
+            Tuple<double, double> idfh = numericSmooth(databaseValues, attributeValue);
+            Tuple<double, double> qfh = numericSmooth(workloadValues, attributeValue);
 
             // Get IDFQF value and database bandwith
             double idfqf = idfh.Item1 * qfh.Item1;
@@ -457,19 +459,26 @@ namespace SQLite
 
                 // Calculate similarity
                 similarity.Add(Tuple.Create(id, Math.Pow(Math.E, -0.5 * Math.Pow((double.Parse(reader[attributeName].ToString()) - attributeValue) / h, 2)) * idfqf));
-                
             }
             CloseConnection();
 
             similarity.Sort((x, y) => y.Item2.CompareTo(x.Item2));
             // Sort on similarity and return
             return similarity;
-            
         }
 
         //The topK search function
-        public void topK(string search)
+        public void topK(string search, System.Windows.Forms.DataGridView dgv, System.Windows.Forms.Label searchLabel)
         {
+            if (search == "")
+            {
+                Console.WriteLine("Invalid search empty string");
+                return;
+            }
+
+            Stopwatch sw = new Stopwatch();
+            sw.Start();
+
             int k = 10;
             // test querietje      brand = 'ford', cylinders = 4, mpg = 18;
 
@@ -477,6 +486,7 @@ namespace SQLite
             List<List<Tuple<int, double>>> attributeSimilarities = new List<List<Tuple<int, double>>>();
 
             // Add whitespace and remove ; for easier parsing
+
             search = " " + search.Substring(0, search.Length - 1);
 
             // Get seperate attribute = value parts
@@ -497,9 +507,20 @@ namespace SQLite
                     Console.WriteLine("'" + attributeName + "' is not a valid attribute");
             }
 
-            List<double> MaximumAttributes = new List<double>();
+            if (attributeSimilarities.Count == 0)
+            {
+                Console.WriteLine("Invalid search not enough attributes");
+                return;
+            }
 
-            for(int i = 0; i < attributeSimilarities.Count; i++) { 
+            List<double> MaximumAttributes = new List<double>();
+            int maxP = 0;
+
+            for (int i = 0; i < attributeSimilarities.Count; i++)
+            {
+                if (attributeSimilarities[i].Count > maxP)
+                    maxP = attributeSimilarities[i].Count;
+
                 MaximumAttributes.Add(attributeSimilarities[i][0].Item2);
             }
 
@@ -516,13 +537,13 @@ namespace SQLite
             List<int> toremove = new List<int>();
             foreach (var kvp in buffer)
             {
-                if(kvp.Value.Item1 >= threshold)
+                if (kvp.Value.Item1 >= threshold)
                 {
-                    finalIDS.Add( Tuple.Create(kvp.Key, kvp.Value.Item2));
+                    finalIDS.Add(Tuple.Create(kvp.Key, kvp.Value.Item2));
                     toremove.Add(kvp.Key);
                 }
             }
-            foreach(int r in toremove)
+            foreach (int r in toremove)
             {
                 buffer.Remove(r);
             }
@@ -533,19 +554,26 @@ namespace SQLite
             {
                 for (int i = 0; i < attributeSimilarities.Count; i++)
                 {
-                      MaximumAttributes[i] = (attributeSimilarities[i][p].Item2);
+                    if (p >= attributeSimilarities[i].Count)
+                        MaximumAttributes[i] = 0.0;
+                    else
+                        MaximumAttributes[i] = (attributeSimilarities[i][p].Item2);
                 }
                 threshold = MaximumAttributes.Sum();
 
                 for (int i = 0; i < attributeSimilarities.Count; i++)
                 {
-                    int id = attributeSimilarities[i][p].Item1;
+                    int id = 0;
+                    if (p >= attributeSimilarities[i].Count)
+                        continue;
+                    else
+                        id = attributeSimilarities[i][p].Item1;
 
                     if (buffer.ContainsKey(id))
                     {
-                         buffer[id] = Tuple.Create(buffer[id].Item1+  MaximumAttributes[i], oldthreshold);
-
-                    }else
+                        buffer[id] = Tuple.Create(buffer[id].Item1 + MaximumAttributes[i], oldthreshold);
+                    }
+                    else
                     {
                         buffer[id] = Tuple.Create(MaximumAttributes[i], threshold);
                     }
@@ -564,35 +592,53 @@ namespace SQLite
                     buffer.Remove(r);
                 }
 
-
-
                 oldthreshold = threshold;
                 p++;
+                if (p > maxP)
+                {
+                    Console.WriteLine("Did not find any more similar cars");
+                    break;
+                }
             }
-
 
             OpenConnection(cardatabasestring);
 
-            //Console.Clear();
             finalIDS.Sort((x, y) => y.Item2.CompareTo(x.Item2));
 
-            for (int j = 0; j < k; j++)
+            sw.Stop();
+
+            dgv.Rows.Clear();
+            dgv.ColumnCount = AllValues.Length;
+            for (int i = 0; i < AllValues.Length; i++)
+            {
+                dgv.Columns[i].Name = AllValues[i];
+            }
+
+            // Console.Clear();
+            // Console.WriteLine("Search querry: '" + search + "' Found the top " + finalIDS.Count + " results in: " + sw.Elapsed.TotalSeconds + "s!");
+            searchLabel.Text = ("Search querry: '" + search + "' Found the top " + finalIDS.Count + " results in: " + sw.Elapsed.TotalSeconds + "s!");
+
+            for (int j = 0; j < finalIDS.Count; j++)
             {
                 string sql = "select * from autompg WHERE id=" + finalIDS[j].Item1.ToString();
                 SQLiteCommand command = new SQLiteCommand(sql, dbconnection);
                 SQLiteDataReader reader = command.ExecuteReader();
 
+                string[] row = new string[AllValues.Length];
+
+                Console.Write("|" + (j + 1) + "|" + Math.Round(finalIDS[j].Item2, 2) + "|: ");
                 for (int r = 0; r < reader.FieldCount; r++)
                 {
-                    Console.Write((string)reader[r].ToString() + ",");
+                    row[r] = reader[r].ToString();
+
+                    //    Console.Write((string)reader[r].ToString() + "\t");
                 }
 
-                Console.WriteLine(" || score: " + finalIDS[j].Item2);
+                dgv.Rows.Add(row);
+                //  Console.WriteLine();
             }
 
             CloseConnection();
-
-
 
             //int tot = 0;
             //// test printje

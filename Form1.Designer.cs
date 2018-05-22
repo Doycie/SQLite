@@ -37,11 +37,14 @@ namespace SQLite
             this.ButtonSearch = new System.Windows.Forms.Button();
             this.TextInputSearch = new System.Windows.Forms.TextBox();
             this.label1 = new System.Windows.Forms.Label();
+            this.SearchLabel = new System.Windows.Forms.Label();
+            this.dataGridView1 = new System.Windows.Forms.DataGridView();
+            ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).BeginInit();
             this.SuspendLayout();
             // 
             // ButtonPrintMetadataTables
             // 
-            this.ButtonPrintMetadataTables.Location = new System.Drawing.Point(12, 184);
+            this.ButtonPrintMetadataTables.Location = new System.Drawing.Point(1005, 80);
             this.ButtonPrintMetadataTables.Name = "ButtonPrintMetadataTables";
             this.ButtonPrintMetadataTables.Size = new System.Drawing.Size(128, 32);
             this.ButtonPrintMetadataTables.TabIndex = 3;
@@ -52,16 +55,16 @@ namespace SQLite
             // ComboBoxShowMDTable
             // 
             this.ComboBoxShowMDTable.FormattingEnabled = true;
-            this.ComboBoxShowMDTable.Location = new System.Drawing.Point(12, 221);
+            this.ComboBoxShowMDTable.Location = new System.Drawing.Point(1139, 87);
             this.ComboBoxShowMDTable.Name = "ComboBoxShowMDTable";
-            this.ComboBoxShowMDTable.Size = new System.Drawing.Size(128, 21);
+            this.ComboBoxShowMDTable.Size = new System.Drawing.Size(152, 21);
             this.ComboBoxShowMDTable.TabIndex = 6;
             this.ComboBoxShowMDTable.SelectedValueChanged += new System.EventHandler(this.ComboBox1_SelectedValueChanged);
             // 
             // ProgressMetadatabase
             // 
             this.ProgressMetadatabase.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(192)))), ((int)(((byte)(0)))));
-            this.ProgressMetadatabase.Location = new System.Drawing.Point(146, 221);
+            this.ProgressMetadatabase.Location = new System.Drawing.Point(1005, 54);
             this.ProgressMetadatabase.Minimum = 1;
             this.ProgressMetadatabase.Name = "ProgressMetadatabase";
             this.ProgressMetadatabase.Size = new System.Drawing.Size(286, 20);
@@ -72,7 +75,7 @@ namespace SQLite
             // 
             // ButtonFillMetadatabase
             // 
-            this.ButtonFillMetadatabase.Location = new System.Drawing.Point(146, 183);
+            this.ButtonFillMetadatabase.Location = new System.Drawing.Point(1005, 12);
             this.ButtonFillMetadatabase.Name = "ButtonFillMetadatabase";
             this.ButtonFillMetadatabase.Size = new System.Drawing.Size(286, 32);
             this.ButtonFillMetadatabase.TabIndex = 4;
@@ -82,9 +85,9 @@ namespace SQLite
             // 
             // ButtonSearch
             // 
-            this.ButtonSearch.Location = new System.Drawing.Point(357, 83);
+            this.ButtonSearch.Location = new System.Drawing.Point(12, 135);
             this.ButtonSearch.Name = "ButtonSearch";
-            this.ButtonSearch.Size = new System.Drawing.Size(75, 23);
+            this.ButtonSearch.Size = new System.Drawing.Size(462, 82);
             this.ButtonSearch.TabIndex = 6;
             this.ButtonSearch.Text = "Search";
             this.ButtonSearch.UseVisualStyleBackColor = true;
@@ -92,27 +95,51 @@ namespace SQLite
             // 
             // TextInputSearch
             // 
-            this.TextInputSearch.Location = new System.Drawing.Point(12, 83);
+            this.TextInputSearch.Location = new System.Drawing.Point(12, 109);
             this.TextInputSearch.Name = "TextInputSearch";
-            this.TextInputSearch.Size = new System.Drawing.Size(339, 20);
+            this.TextInputSearch.Size = new System.Drawing.Size(462, 20);
             this.TextInputSearch.TabIndex = 7;
-            // 
+            this.TextInputSearch.KeyUp += TextBoxKeyUp;
+            //
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(13, 13);
+            this.label1.Location = new System.Drawing.Point(12, 35);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(255, 39);
+            this.label1.Size = new System.Drawing.Size(281, 52);
             this.label1.TabIndex = 8;
-            this.label1.Text = "To search input a search querry in the following way:\r\nk = 6, brand = \'volkswagen" +
-    "\';\r\ncylinders = 4, brand = \'ford\';";
+            this.label1.Text = "To search input a search querry in the following way:\r\nk = \'6\', brand = \'volkswag" +
+    "en\';\r\ncylinders = \'4\', brand = \'ford\';\r\nMake sure to add quotation marks even to" +
+    " numeric values\r\n";
+            //
+            // Search Label
+            //
+            this.SearchLabel.AutoSize = true;
+            this.SearchLabel.Location = new System.Drawing.Point(12, 220);
+            this.SearchLabel.Name = "label1";
+            this.SearchLabel.Size = new System.Drawing.Size(281, 52);
+            this.SearchLabel.TabIndex = 8;
+          
+            // 
+            // dataGridView1
+            // 
+            this.dataGridView1.AllowUserToAddRows = false;
+            this.dataGridView1.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dataGridView1.Location = new System.Drawing.Point(12, 259);
+            this.dataGridView1.Name = "dataGridView1";
+            this.dataGridView1.ReadOnly = true;
+            this.dataGridView1.Size = new System.Drawing.Size(1279, 307);
+            this.dataGridView1.TabIndex = 9;
+            this.dataGridView1.AllowUserToAddRows = false;
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(441, 254);
+            this.ClientSize = new System.Drawing.Size(1303, 578);
+            this.Controls.Add(this.dataGridView1);
             this.Controls.Add(this.label1);
+            this.Controls.Add(this.SearchLabel);
             this.Controls.Add(this.ComboBoxShowMDTable);
             this.Controls.Add(this.TextInputSearch);
             this.Controls.Add(this.ButtonPrintMetadataTables);
@@ -121,6 +148,7 @@ namespace SQLite
             this.Controls.Add(this.ButtonFillMetadatabase);
             this.Name = "Form1";
             this.Text = "Database";
+            ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -135,5 +163,7 @@ namespace SQLite
         private System.Windows.Forms.Button ButtonSearch;
         private System.Windows.Forms.TextBox TextInputSearch;
         private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.Label SearchLabel;
+        private System.Windows.Forms.DataGridView dataGridView1;
     }
 }
