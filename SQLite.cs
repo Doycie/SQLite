@@ -339,6 +339,7 @@ namespace SQLite
             SQLiteDataReader reader = command.ExecuteReader();
             while (reader.Read())
             {
+                Console.Write(reader["id"].ToString());
                 // Add all query attributes to list
                 foreach (string c in CatogoricalValues)
                     AttributeOccurence.Add(Tuple.Create(c, reader[c].ToString(), int.Parse(reader["id"].ToString())));
@@ -398,15 +399,29 @@ namespace SQLite
             // <t value, occurrence> pairs from database
             List<Tuple<int, double>> similarity = new List<Tuple<int, double>>();
 
+
             // Get all documents containg the given attribute value
-            sql = "select * from " + attributeName + "_Occurence WHERE " + attributeName + " == '" + attributeValue + "'";
+            sql = "select * from " + attributeName + "_Occurence WHERE " + attributeName + " == '" + attributeValue + "' order by id";
             command = new SQLiteCommand(sql, dbconnection);
             reader = command.ExecuteReader();
-
+            int expectedID = 1;
             while (reader.Read())
             {
-                similarity.Add(Tuple.Create(int.Parse(reader["id"].ToString()), idfqf));
+                while (int.Parse(reader["id"].ToString()) > expectedID) {
+                    similarity.Add(Tuple.Create(expectedID, 0.0));
+                    expectedID++;
+                }
+                similarity.Add(Tuple.Create(expectedID, idfqf));
+                expectedID++;
             }
+            while(expectedID < 397)
+            {
+                similarity.Add(Tuple.Create(expectedID, 0.0));
+                expectedID++;
+            }
+
+            CloseConnection();
+            similarity.Sort((x, y) => y.Item2.CompareTo(x.Item2));
 
             // Sort on similarity and return
             return similarity;
@@ -552,22 +567,30 @@ namespace SQLite
             double oldthreshold = threshold;
             while (finalIDS.Count < k)
             {
+                //Go over all attributes ex volkswagen and cylinders
                 for (int i = 0; i < attributeSimilarities.Count; i++)
                 {
-                    if (p >= attributeSimilarities[i].Count)
-                        MaximumAttributes[i] = 0.0;
-                    else
-                        MaximumAttributes[i] = (attributeSimilarities[i][p].Item2);
+                    //As long as there are id's with that attribute
+                    MaximumAttributes[i] = (attributeSimilarities[i][p].Item2);
                 }
-                threshold = MaximumAttributes.Sum();
+
+                double maxT = 0.0;
+                foreach(var kvp in buffer)
+                {
+                    if(maxT< kvp.Value.Item2)
+                    {
+                        maxT = kvp.Value.Item2;
+                    }
+                }
+
+                threshold = maxT;
+                double tthreshold = MaximumAttributes.Sum();
 
                 for (int i = 0; i < attributeSimilarities.Count; i++)
                 {
                     int id = 0;
-                    if (p >= attributeSimilarities[i].Count)
-                        continue;
-                    else
-                        id = attributeSimilarities[i][p].Item1;
+
+                    id = attributeSimilarities[i][p].Item1;
 
                     if (buffer.ContainsKey(id))
                     {
@@ -575,7 +598,7 @@ namespace SQLite
                     }
                     else
                     {
-                        buffer[id] = Tuple.Create(MaximumAttributes[i], threshold);
+                        buffer[id] = Tuple.Create(MaximumAttributes[i], tthreshold);
                     }
                 }
                 toremove = new List<int>();
@@ -592,7 +615,7 @@ namespace SQLite
                     buffer.Remove(r);
                 }
 
-                oldthreshold = threshold;
+                oldthreshold = tthreshold;
                 p++;
                 if (p > maxP)
                 {
@@ -603,7 +626,7 @@ namespace SQLite
 
             OpenConnection(cardatabasestring);
 
-            finalIDS.Sort((x, y) => y.Item2.CompareTo(x.Item2));
+            //finalIDS.Sort((x, y) =>x.Item2.CompareTo(y.Item2));
 
             sw.Stop();
 
@@ -616,9 +639,9 @@ namespace SQLite
 
             // Console.Clear();
             // Console.WriteLine("Search querry: '" + search + "' Found the top " + finalIDS.Count + " results in: " + sw.Elapsed.TotalSeconds + "s!");
-            searchLabel.Text = ("Search querry: '" + search + "' Found the top " + finalIDS.Count + " results in: " + sw.Elapsed.TotalSeconds + "s!");
+            searchLabel.Text = ("Search querry: '" + search + "' Found the top " + finalIDS.Count + " but limiting to "+ k +" results in: " + sw.Elapsed.TotalSeconds + "s!");
 
-            for (int j = 0; j < finalIDS.Count; j++)
+            for (int j = 0; j < finalIDS.Count && j < k; j++)
             {
                 string sql = "select * from autompg WHERE id=" + finalIDS[j].Item1.ToString();
                 SQLiteCommand command = new SQLiteCommand(sql, dbconnection);
@@ -631,11 +654,11 @@ namespace SQLite
                 {
                     row[r] = reader[r].ToString();
 
-                    //    Console.Write((string)reader[r].ToString() + "\t");
+                        Console.Write((string)reader[r].ToString() + "\t");
                 }
 
                 dgv.Rows.Add(row);
-                //  Console.WriteLine();
+                Console.WriteLine();
             }
 
             CloseConnection();
