@@ -724,10 +724,12 @@ namespace SQLite
 
             searchLabel.Text = ("Search querry: '" + search + "' Found the top " + topk.Count + " but limiting to " + k + " results in: " + sw.Elapsed.TotalSeconds + "s!");
 
-            
-            Console.WriteLine("393: " + topk[393]);
-            bool iets = (topk[293][0].Item2 * (10 ^ 50) + topk[293][1].Item2) * (10 ^ 50) == (topk[393][0].Item2 * (10 ^ 50) + topk[393][1].Item2 * (10 ^ 50));
-            Console.WriteLine("=: " + iets);
+            // brand = 'volkswagen', mpg = '3'
+            //Console.WriteLine("393: " + topk[393]);
+            //bool iets = (topk[293][0].Item2 * (10 ^ 50) + topk[293][1].Item2) * (10 ^ 50) == (topk[393][0].Item2 * (10 ^ 50) + topk[393][1].Item2 * (10 ^ 50));
+            //bool iets2 = (topk[293][0].Item2 + topk[293][1].Item2)  == (topk[393][0].Item2  + topk[393][1].Item2);
+            //Console.WriteLine("=: " + iets);
+            //Console.WriteLine("=: " + iets2);
 
             // Get OID, <upperRange, lowerRange>
             List<Tuple<int, Tuple<double, double>>> topkNew = new List<Tuple<int, Tuple<double, double>>>();
@@ -738,10 +740,11 @@ namespace SQLite
                 double upperRange = 0;
                 for (int attribute = 0; attribute < OIDsim.Value.Count; attribute++)
                 {
+                    
                     if (OIDsim.Value[attribute].Item1)
-                        lowerRange += OIDsim.Value[attribute].Item2;
+                        lowerRange += Math.Log(OIDsim.Value[attribute].Item2);
 
-                    upperRange += OIDsim.Value[attribute].Item2;
+                    upperRange += Math.Log(OIDsim.Value[attribute].Item2 * (10 ^ 50));
                 }
 
                 // Add OID with <upperRange, lowerRange>
