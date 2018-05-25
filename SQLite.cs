@@ -336,17 +336,16 @@ namespace SQLite
             // Loop over all queries
             string sql = "select * from autompg";
             SQLiteCommand command = new SQLiteCommand(sql, dbconnection);
-            SQLiteDataReader reader = command.ExecuteReader();
+            SQLiteDataReader reader = command.ExecuteReader();            
             while (reader.Read())
             {
-                Console.Write(reader["id"].ToString());
                 // Add all query attributes to list
                 foreach (string c in CatogoricalValues)
                     AttributeOccurence.Add(Tuple.Create(c, reader[c].ToString(), int.Parse(reader["id"].ToString())));
                 foreach (string n in NumericValues)
                     AttributeOccurence.Add(Tuple.Create(n, reader[n].ToString(), int.Parse(reader["id"].ToString())));
             }
-
+            
             // Open connection with metadatabase
             CloseConnection();
             OpenConnection(metadatastring);
@@ -358,6 +357,7 @@ namespace SQLite
                 ExecuteCommand("CREATE TABLE " + n + "_Occurence (" + n + " double, id integer)");
 
             ProgressMetadatabase.Maximum = AttributeOccurence.Count;
+            ProgressMetadatabase.Minimum = 0;
             ProgressMetadatabase.Value = 0;
 
             // Fill Occurence tables with values from list
@@ -384,6 +384,7 @@ namespace SQLite
             CloseConnection();
         }
 
+
         // Get sorted S(t, q) for every document given a catigorical attribute value q
         public List<Tuple<int, double>> catigoricalSimilarity(string attributeName, string attributeValue)
         {
@@ -398,6 +399,7 @@ namespace SQLite
 
             // <t value, occurrence> pairs from database
             List<Tuple<int, double>> similarity = new List<Tuple<int, double>>();
+            //Dictionary<int, double> similarity = new Dictionary<int, double>();
 
 
             // Get all documents containg the given attribute value
@@ -407,20 +409,28 @@ namespace SQLite
             int expectedID = 1;
             while (reader.Read())
             {
-                while (int.Parse(reader["id"].ToString()) > expectedID) {
-                    similarity.Add(Tuple.Create(expectedID, 0.0));
+                while (int.Parse(reader["id"].ToString()) > expectedID)
+                {
+
+                    if (expectedID != 359)
+                        similarity.Add(Tuple.Create(expectedID, 0.0));
                     expectedID++;
                 }
+
                 similarity.Add(Tuple.Create(expectedID, idfqf));
+
                 expectedID++;
             }
-            while(expectedID < 397)
+            while (expectedID <= 396)
             {
-                similarity.Add(Tuple.Create(expectedID, 0.0));
+                if (expectedID != 359)
+                    similarity.Add(Tuple.Create(expectedID, 0.0));
                 expectedID++;
             }
 
             CloseConnection();
+
+            //!!!! sort doen bij het vullen!!!!
             similarity.Sort((x, y) => y.Item2.CompareTo(x.Item2));
 
             // Sort on similarity and return
@@ -461,6 +471,7 @@ namespace SQLite
             double h = idfh.Item2;
 
             // <id, similarity> pairs
+            //List<Tuple<int, double>> similarity = new List<Tuple<int, double>>();
             List<Tuple<int, double>> similarity = new List<Tuple<int, double>>();
 
             // Loop over every document with a value for the given attribute
@@ -477,14 +488,18 @@ namespace SQLite
             }
             CloseConnection();
 
-            similarity.Sort((x, y) => y.Item2.CompareTo(x.Item2));
             // Sort on similarity and return
+            similarity.Sort((x, y) => y.Item2.CompareTo(x.Item2));
             return similarity;
         }
+
 
         //The topK search function
         public void topK(string search, System.Windows.Forms.DataGridView dgv, System.Windows.Forms.Label searchLabel)
         {
+            bool perfectSort = true;
+            bool skip = false;
+
             if (search == "")
             {
                 Console.WriteLine("Invalid search empty string");
@@ -501,7 +516,6 @@ namespace SQLite
             List<List<Tuple<int, double>>> attributeSimilarities = new List<List<Tuple<int, double>>>();
 
             // Add whitespace and remove ; for easier parsing
-
             search = " " + search.Substring(0, search.Length - 1);
 
             // Get seperate attribute = value parts
@@ -527,107 +541,178 @@ namespace SQLite
                 Console.WriteLine("Invalid search not enough attributes");
                 return;
             }
+            
+            // Create buffer and topk
+            Dictionary<int, List<Tuple<bool, double>>> buffer = new Dictionary<int, List<Tuple<bool, double>>>();
+            Dictionary<int, List<Tuple<bool, double>>> topk = new Dictionary<int, List<Tuple<bool, double>>>();
 
-            List<double> MaximumAttributes = new List<double>();
-            int maxP = 0;
 
-            for (int i = 0; i < attributeSimilarities.Count; i++)
+            // Loop over all rows
+            for (int row = 0; row < attributeSimilarities[0].Count; row++)
             {
-                if (attributeSimilarities[i].Count > maxP)
-                    maxP = attributeSimilarities[i].Count;
+                // ??? iets anders dan met een hashset doen?
+                // Keep track of values in this row 
+                List<Tuple<int, double>> rowAttributes = new List<Tuple<int, double>>();
+                HashSet<int> uniqueOID = new HashSet<int>();
+                double threshold = 0;
 
-                MaximumAttributes.Add(attributeSimilarities[i][0].Item2);
-            }
-
-            double threshold = MaximumAttributes.Sum();
-
-            List<Tuple<int, double>> finalIDS = new List<Tuple<int, double>>();
-            Dictionary<int, Tuple<double, double>> buffer = new Dictionary<int, Tuple<double, double>>();
-
-            for (int i = 0; i < attributeSimilarities.Count; i++)
-            {
-                buffer[attributeSimilarities[i][0].Item1] = Tuple.Create(attributeSimilarities[i][0].Item2, threshold);
-            }
-
-            List<int> toremove = new List<int>();
-            foreach (var kvp in buffer)
-            {
-                if (kvp.Value.Item1 >= threshold)
+                // Loop over all attributes in this row
+                for (int attribute = 0; attribute < attributeSimilarities.Count; attribute++)
                 {
-                    finalIDS.Add(Tuple.Create(kvp.Key, kvp.Value.Item2));
-                    toremove.Add(kvp.Key);
-                }
-            }
-            foreach (int r in toremove)
-            {
-                buffer.Remove(r);
-            }
+                    int OID = attributeSimilarities[attribute][row].Item1;
+                    double similarity = attributeSimilarities[attribute][row].Item2;
 
-            int p = 1;
-            double oldthreshold = threshold;
-            while (finalIDS.Count < k)
-            {
-                //Go over all attributes ex volkswagen and cylinders
-                for (int i = 0; i < attributeSimilarities.Count; i++)
-                {
-                    //As long as there are id's with that attribute
-                    MaximumAttributes[i] = (attributeSimilarities[i][p].Item2);
+                    // Add Attribute OID and similarity from current row
+                    rowAttributes.Add(Tuple.Create(OID, similarity));
+                    uniqueOID.Add(OID);
+
+                    // Keep track of treshold
+                    threshold += similarity;
                 }
 
-                double maxT = 0.0;
-                foreach(var kvp in buffer)
+                if (!skip)
                 {
-                    if(maxT< kvp.Value.Item2)
+                    // update buffer
+                    foreach (var OIDsim in buffer)
                     {
-                        maxT = kvp.Value.Item2;
+                        // Loop over all attribute similarities binnen item
+                        for (int attribute = 0; attribute < OIDsim.Value.Count; attribute++)
+                        {
+                            // Update if correct similarity isnt found yet
+                            if (!OIDsim.Value[attribute].Item1)
+                            {
+                                bool equalOID = false;
+
+                                // Correct similarity is found
+                                if (OIDsim.Key == rowAttributes[attribute].Item1)
+                                    equalOID = true;
+
+                                // Update attribute with new similarity
+                                OIDsim.Value[attribute] = Tuple.Create(equalOID, rowAttributes[attribute].Item2);
+                            }
+                        }
                     }
                 }
 
-                threshold = maxT;
-                double tthreshold = MaximumAttributes.Sum();
-
-                for (int i = 0; i < attributeSimilarities.Count; i++)
+                // update topk
+                foreach (var OIDsim in topk)
                 {
-                    int id = 0;
+                    // Loop over all attribute similarities binnen item
+                    for (int attribute = 0; attribute < OIDsim.Value.Count; attribute++)
+                    {
+                        // Update if correct similarity isnt found yet
+                        if (!OIDsim.Value[attribute].Item1)
+                        {
+                            bool equalOID = false;
 
-                    id = attributeSimilarities[i][p].Item1;
+                            // Correct similarity is found
+                            if (OIDsim.Key == rowAttributes[attribute].Item1)
+                                equalOID = true;
 
-                    if (buffer.ContainsKey(id))
-                    {
-                        buffer[id] = Tuple.Create(buffer[id].Item1 + MaximumAttributes[i], oldthreshold);
-                    }
-                    else
-                    {
-                        buffer[id] = Tuple.Create(MaximumAttributes[i], tthreshold);
-                    }
-                }
-                toremove = new List<int>();
-                foreach (var kvp in buffer)
-                {
-                    if (kvp.Value.Item1 >= threshold)
-                    {
-                        finalIDS.Add(Tuple.Create(kvp.Key, kvp.Value.Item2));
-                        toremove.Add(kvp.Key);
+                            // Update attribute with new similarity
+                            OIDsim.Value[attribute] = Tuple.Create(equalOID, rowAttributes[attribute].Item2);
+                        }
                     }
                 }
-                foreach (int r in toremove)
+
+
+                
+                if (!skip)
                 {
-                    buffer.Remove(r);
+                    // Add possible new OID sim to buffer
+                    foreach (int OID in uniqueOID)
+                    {
+                        // Add OID if we dont have it already
+                        if (!buffer.ContainsKey(OID) && !topk.ContainsKey(OID))
+                        {
+                            // Create OID value list
+                            List<Tuple<bool, double>> OIDValue = new List<Tuple<bool, double>>();
+                            foreach (var tuple in rowAttributes)   
+                            {
+                                // Correct similarity for OID
+                                if (OID == tuple.Item1)
+                                    OIDValue.Add(Tuple.Create(true, tuple.Item2));
+                                // Wrong similarity for OID
+                                else
+                                    OIDValue.Add(Tuple.Create(false, tuple.Item2));
+                            }
+
+                            // Add to buffer
+                            buffer.Add(OID, OIDValue);
+                        }
+                    }
                 }
 
-                oldthreshold = tthreshold;
-                p++;
-                if (p > maxP)
-                {
-                    Console.WriteLine("Did not find any more similar cars");
-                    break;
+
+                bool possibleTopk = false;
+                if (!skip)
+                {                    
+                    List<int> removedOID = new List<int>();
+                    // Move from buffer to topk
+                    foreach (var OIDsim in buffer)
+                    {
+                        // Get lower and upper range for every item in buffer
+                        double lowerRange = 0;
+                        double upperRange = 0;
+                        for (int attribute = 0; attribute < OIDsim.Value.Count; attribute++)
+                        {
+                            if (OIDsim.Value[attribute].Item1)
+                                lowerRange += OIDsim.Value[attribute].Item2;
+                            upperRange += OIDsim.Value[attribute].Item2;
+                        }
+
+                        // Add to topk if lower range is above threshold
+                        if (lowerRange >= threshold)
+                        {
+                            topk.Add(OIDsim.Key, OIDsim.Value);
+                            removedOID.Add(OIDsim.Key);
+                        }
+
+                        // If an upper range is over the threshold its possibly better
+                        if (upperRange >= threshold)
+                            possibleTopk = true;
+                    }
+
+                    // Remove from buffer
+                    foreach (int OID in removedOID)
+                        buffer.Remove(OID);
                 }
+
+
+                if (skip)
+                {
+                    bool allSimilarities = true;
+                    foreach (var OIDsim in topk)
+                    {
+                        // Check if all values attribute vallues are found                         
+                        for (int attribute = 0; attribute < OIDsim.Value.Count; attribute++)
+                        {
+                            if (!OIDsim.Value[attribute].Item1)
+                                allSimilarities = false;
+                        }
+
+                    }
+
+                    // Stop if all values are found
+                    if (allSimilarities)
+                        break;
+                }
+                // Stop when k is reached and there arent any possibly better solotions
+                else if (topk.Count >= k) //&& !possibleTopk 
+                {                    
+                    if (perfectSort)                    
+                        skip = true;
+                    
+                    else                    
+                        break;
+                }
+                
+
             }
+
 
             OpenConnection(cardatabasestring);
-
-            //finalIDS.Sort((x, y) =>x.Item2.CompareTo(y.Item2));
-
+            
             sw.Stop();
 
             dgv.Rows.Clear();
@@ -637,24 +722,54 @@ namespace SQLite
                 dgv.Columns[i].Name = AllValues[i];
             }
 
-            // Console.Clear();
-            // Console.WriteLine("Search querry: '" + search + "' Found the top " + finalIDS.Count + " results in: " + sw.Elapsed.TotalSeconds + "s!");
-            searchLabel.Text = ("Search querry: '" + search + "' Found the top " + finalIDS.Count + " but limiting to "+ k +" results in: " + sw.Elapsed.TotalSeconds + "s!");
+            searchLabel.Text = ("Search querry: '" + search + "' Found the top " + topk.Count + " but limiting to " + k + " results in: " + sw.Elapsed.TotalSeconds + "s!");
 
-            for (int j = 0; j < finalIDS.Count && j < k; j++)
+            
+            Console.WriteLine("393: " + topk[393]);
+            bool iets = (topk[293][0].Item2 * (10 ^ 50) + topk[293][1].Item2) * (10 ^ 50) == (topk[393][0].Item2 * (10 ^ 50) + topk[393][1].Item2 * (10 ^ 50));
+            Console.WriteLine("=: " + iets);
+
+            // Get OID, <upperRange, lowerRange>
+            List<Tuple<int, Tuple<double, double>>> topkNew = new List<Tuple<int, Tuple<double, double>>>();
+            foreach (var OIDsim in topk)
             {
-                string sql = "select * from autompg WHERE id=" + finalIDS[j].Item1.ToString();
+                // Get lower and upper range for every item in buffer
+                double lowerRange = 0;
+                double upperRange = 0;
+                for (int attribute = 0; attribute < OIDsim.Value.Count; attribute++)
+                {
+                    if (OIDsim.Value[attribute].Item1)
+                        lowerRange += OIDsim.Value[attribute].Item2;
+
+                    upperRange += OIDsim.Value[attribute].Item2;
+                }
+
+                // Add OID with <upperRange, lowerRange>
+                topkNew.Add(Tuple.Create(OIDsim.Key, Tuple.Create(lowerRange, upperRange)));
+            }
+            
+            // Sort on lower range, if equal sort on upper range       
+            topkNew.Sort((x, y) => {
+                int result = y.Item2.Item1.CompareTo(x.Item2.Item1);
+                return result == 0 ? y.Item2.Item2.CompareTo(x.Item2.Item2) : result;
+            });
+
+
+
+            foreach (var OIDsim in topkNew.Take(k))
+            {
+                string sql = "select * from autompg WHERE id=" + OIDsim.Item1.ToString();
                 SQLiteCommand command = new SQLiteCommand(sql, dbconnection);
                 SQLiteDataReader reader = command.ExecuteReader();
 
                 string[] row = new string[AllValues.Length];
 
-                Console.Write("|" + (j + 1) + "|" + Math.Round(finalIDS[j].Item2, 2) + "|: ");
+                Console.Write("|" + OIDsim.Item2.Item1 + " - " + OIDsim.Item2.Item2 + "|: ");
                 for (int r = 0; r < reader.FieldCount; r++)
                 {
                     row[r] = reader[r].ToString();
 
-                        Console.Write((string)reader[r].ToString() + "\t");
+                    Console.Write((string)reader[r].ToString() + "\t");
                 }
 
                 dgv.Rows.Add(row);
@@ -663,155 +778,14 @@ namespace SQLite
 
             CloseConnection();
 
-            //int tot = 0;
-            //// test printje
-            //foreach (List<Tuple<int, double>> attributeSimilarity in attributeSimilarities)
-            //{
-            //    foreach (Tuple<int, double> kv in attributeSimilarity)
-            //    {
-            //        tot++;
-            //        Console.WriteLine("document id: " + kv.Item1 + " similarity: " + kv.Item2);
-            //    }
+            
 
-            //    Console.WriteLine("--------------------------------");
-            //    Console.WriteLine("-------------" + tot  +"------------------");
-            //    Console.WriteLine("--------------------------------");
-            //}
-
-            //////////////////////////////////////////////////////////////////////
-            /*
-            //A list of tuples for the search terms, ex. <brand,volkswagen>
-            List<Tuple<string, string>> terms = new List<Tuple<string, string>>();
-
-            //Default k value is this value plus one so 10
-            int k = 10;
-            string[] searchTerms = search.Split(',');
-
-            foreach (var st in searchTerms)
-            {
-                int offset = 0;
-                string[] searchTerm = st.Split();
-                if (searchTerm[0] == "")
-                    offset++;
-                if (searchTerm[offset + 0] == "k")
-                {
-                    k = int.Parse(searchTerm[offset + 2]) ;
-                }
-                else
-                {
-                    terms.Add(Tuple.Create(searchTerm[offset + 0], searchTerm[offset + 2]));
-                }
-            }
-
-            //Buffer to hold an ID and the corresponding minimum and maximum values that ID can have so far
-            Dictionary<int, Tuple<float,float>> buffer = new Dictionary<int, Tuple<float, float>>();
-
-            //List to hold the final top k result
-            List<Tuple<int,float>> finalIDS = new List<Tuple<int,float>>();
-            //List to hold the current maximum values
-            List<float> MaxAttributes = new List<float>();
-
-            OpenConnection(metadatastring);
-
-            //Go over each term to add to the maximum list and the treshhold is them all added up
-            foreach (var t in terms) {
-                string sql = "select idfqf from " + t.Item1 + " order by idfqf DESC limit 1" ;
-                SQLiteCommand command = new SQLiteCommand(sql, dbconnection);
-                SQLiteDataReader reader = command.ExecuteReader();
-                MaxAttributes.Add( float.Parse((reader[0].ToString() )) );
-            }
-            float treshhold = MaxAttributes.Sum();
-
-            //Go over the terms again to add them to the buffer, minimum value is that attributes value and maximum is the treshhold
-            int i = 0;
-            foreach ( var t in terms)
-            {
-                string sql = "select id from " + t.Item1 + "_Occurence WHERE  " + t.Item1 + "=" + t.Item2;
-                SQLiteCommand command = new SQLiteCommand(sql, dbconnection);
-                SQLiteDataReader reader = command.ExecuteReader();
-                while(reader.Read())
-                {
-                    buffer[int.Parse(reader[0].ToString())] = Tuple.Create(MaxAttributes[i], treshhold);
-                }
-                i++;
-            }
-
-            foreach(var value in buffer)
-            {
-                if( value.Value.Item1 >= treshhold)
-                {
-                    finalIDS.Add(Tuple.Create(value.Key,value.Value.Item1));
-                }
-            }
-
-            int it = 1;
-            float oldthreshold = treshhold;
-            //As long as we need more results
-            while(finalIDS.Count < k)
-            {
-                for(i = 0; i< terms.Count;i++)
-                {
-                    string sql = "select idfqf from " + terms[i].Item1 + " order by idfqf DESC limit "+(it+1)+" offset " + it;
-                    SQLiteCommand command = new SQLiteCommand(sql, dbconnection);
-                    SQLiteDataReader reader = command.ExecuteReader();
-                    MaxAttributes[i] = (float.Parse((reader[0].ToString())));
-                }
-                treshhold = MaxAttributes.Sum();
-
-                for(int j = 0; j < terms.Count; j++) {
-                    string sql = "select id from " + terms[j].Item1 + "_Occurence WHERE  " + terms[j].Item1 + "=" + terms[j].Item2;
-                    SQLiteCommand command = new SQLiteCommand(sql, dbconnection);
-                    SQLiteDataReader reader = command.ExecuteReader();
-                    while (reader.Read())
-                    {
-                        int id = int.Parse(reader[0].ToString());
-
-                        if (buffer.ContainsKey(id))
-                        {
-                            buffer[id] = Tuple.Create(buffer[id].Item1 + MaxAttributes[j], oldthreshold);
-                        }
-                        else
-                        {
-                            buffer[id] = Tuple.Create(MaxAttributes[j], treshhold);
-                        }
-                    }
-                }
-
-                foreach (var value in buffer)
-                {
-                    if (value.Value.Item1 >= treshhold)
-                    {
-                        finalIDS.Add(Tuple.Create(value.Key, value.Value.Item1));
-                    }
-                }
-
-                oldthreshold = treshhold;
-                it++;
-            }
-
-            CloseConnection();
-
-            OpenConnection(cardatabasestring);
-
-            //Console.Clear();
-            finalIDS.Sort((x, y) => y.Item2.CompareTo(x.Item2));
-
-           for(int j = 0; j< k; j++) {
-                string sql = "select * from autompg WHERE id=" + finalIDS[j].Item1.ToString();
-                SQLiteCommand command = new SQLiteCommand(sql, dbconnection);
-                SQLiteDataReader reader = command.ExecuteReader();
-
-                for(int r = 0; r < reader.FieldCount;r++)
-                {
-                    Console.Write((string)reader[r].ToString() + ",");
-                }
-
-                Console.WriteLine(" || score: " + finalIDS[j].Item2);
-            }
-
-            CloseConnection();
-            */
+  
+            
         }
+
+
+
 
         //Database helpers
         private void ExecuteCommand(string com)
