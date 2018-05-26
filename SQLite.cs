@@ -400,21 +400,22 @@ namespace SQLite
 
             // <t value, occurrence> pairs from database
             List<Tuple<int, double>> similarity = new List<Tuple<int, double>>();
-            //Dictionary<int, double> similarity = new Dictionary<int, double>();
 
 
             // Get all documents containg the given attribute value
-            sql = "select * from " + attributeName + "_Occurence WHERE " + attributeName + " == '" + attributeValue + "' order by id";
+            sql = "select * from " + attributeName + "_Occurence WHERE " + attributeName + " == '" + attributeValue + "'";
             command = new SQLiteCommand(sql, dbconnection);
             reader = command.ExecuteReader();
             int expectedID = 1;
+            List<int> missedID = new List<int>();
             while (reader.Read())
             {
+                // Keep track of id's that will get sim 0
                 while (int.Parse(reader["id"].ToString()) > expectedID)
-                {
-
+                {                   
+                    // ID 359 doesnt exist
                     if (expectedID != 359)
-                        similarity.Add(Tuple.Create(expectedID, 0.0));
+                        missedID.Add(expectedID);
                     expectedID++;
                 }
 
@@ -422,19 +423,22 @@ namespace SQLite
 
                 expectedID++;
             }
+            // Add missed ids with sim 0
+            foreach(int id in missedID)
+                similarity.Add(Tuple.Create(id, 0.0));
+
+            // Add more possibly more ids with sim 0 
             while (expectedID <= 396)
             {
+                // Expected id still doesnt exist
                 if (expectedID != 359)
                     similarity.Add(Tuple.Create(expectedID, 0.0));
                 expectedID++;
             }
 
             CloseConnection();
-
-            //!!!! sort doen bij het vullen!!!!
-            similarity.Sort((x, y) => y.Item2.CompareTo(x.Item2));
-
-            // Sort on similarity and return
+           
+            // Return similarity
             return similarity;
         }
 
