@@ -11,8 +11,9 @@ namespace SQLite
     {
         private SQLiteConnection dbconnection;
 
-        private const string metadatastring = "metadata.sqlite";
+        private const string metadatastring = "C:/t/metadata.sqlite";
         private const string cardatabasestring = "CarDatabase.sqlite";
+        private const string fileToLoadFrom = "autompg.sql";
         private string[] CatogoricalValues = { "cylinders", "model_year", "origin", "brand", "model", "type" };
         private string[] NumericValues = { "mpg", "displacement", "horsepower", "weight", "acceleration" };
         private string[] AllValues = { "id", "mpg", "cylinders", "displacement", "horsepower", "weight", "acceleration", "model_year", "origin", "brand", "model", "type" };
@@ -26,9 +27,10 @@ namespace SQLite
             SQLiteCommand command = new SQLiteCommand(sql, dbconnection);
             SQLiteDataReader reader = command.ExecuteReader();
 
+            bool attsim = false;
             // Extract  attribute name from table name and add correct valuetype
-            string attributeName;
-            string column1;
+            string attributeName = "";
+            string column1 = "";
             if (tableName.EndsWith("_Occurence"))
             {
                 attributeName = tableName.Substring(0, tableName.Length - 10);
@@ -38,17 +40,24 @@ namespace SQLite
             {
                 attributeName = tableName.Substring(0, tableName.Length - 15);
                 column1 = "\ttimes ";
+            }else if (tableName.EndsWith("Attsim"))
+            {
+                attsim = true;
             }
             else
             {
                 attributeName = tableName;
                 column1 = "\tidfqf: ";
             }
-
-            // Print all values
-            while (reader.Read())
-                Console.WriteLine(attributeName + " value: " + reader[0] + column1 + reader[1]);
-
+            if (!attsim)
+                // Print all values
+                while (reader.Read())
+                    Console.WriteLine(attributeName + " value: " + reader[0] + column1 + reader[1]);
+            else
+            {
+                while (reader.Read())
+                    Console.WriteLine(attributeName + " value: " + reader[0] + " " + reader[1] + " " + reader[2]);
+            }
             CloseConnection();
         }
 
@@ -74,11 +83,18 @@ namespace SQLite
         //QF Values
         private Dictionary<Tuple<string, string>, int> qfoccurrences = new Dictionary<Tuple<string, string>, int>();
 
+
+        private Dictionary<string, Dictionary<Tuple<string, string>, double>> attributesimilarity = new Dictionary<string, Dictionary<Tuple<string, string>, double>>();
+
+
         private int QFMax = 0;
 
         //QF functions
         public void MakeQFDictionary()
         {
+            // [brand][opel] = [(2,65),...]
+            Dictionary<string, Dictionary<string, List<Tuple<int, int>>>> AttributeSimilarityLists = new Dictionary<string, Dictionary<string, List<Tuple<int, int>>>>();
+
             if (qfoccurrences.Count > 1)
             {
                 Console.WriteLine("QF values have already been put in a dictionary");
@@ -91,6 +107,7 @@ namespace SQLite
             input = sr.ReadLine();
             input = sr.ReadLine();
 
+            int inTuple = 0;
             // Read all lines
             while ((input = sr.ReadLine()) != null)
             {
@@ -113,26 +130,41 @@ namespace SQLite
                     // Parsing changes when IN occures
                     if (inputSplit[position + 2] == "IN")
                     {
-                        // Remove brackets
+                        string typeofattribute = inputSplit[position + 1];
+                        if (!AttributeSimilarityLists.ContainsKey(typeofattribute))
+                        {
+                            AttributeSimilarityLists[typeofattribute] = new Dictionary<string, List<Tuple<int, int>>>();
+                        }
+
+                        if (typeofattribute == "type")
+                        {
+                            int w = 0;
+                        }
+
                         string cats = inputSplit[position + 3];
+                        if (!cats.EndsWith(")"))
+                            cats += " "+ inputSplit[position + 4];
                         cats = cats.TrimStart('(');
                         cats = cats.TrimEnd(')');
 
-                        // Get all attribute values
                         string[] inputSplit2 = cats.Split(',');
 
                         foreach (var i in inputSplit2)
                         {
                             // Remove '' from start and end
                             string t = i.Substring(1, i.Length - 2);
-
                             // Add attribute, value pair to dictionary
-                            var key = Tuple.Create(inputSplit[position + 1], t);
-                            if (qfoccurrences.ContainsKey(key))
-                                qfoccurrences[key] += times;
+                            if (!AttributeSimilarityLists[typeofattribute].ContainsKey(t))
+                            {
+                                AttributeSimilarityLists[typeofattribute][t] = new List<Tuple<int, int>>();
+                                AttributeSimilarityLists[typeofattribute][t].Add(Tuple.Create(inTuple, times));
+                            }
                             else
-                                qfoccurrences.Add(key, times);
+                            {
+                                AttributeSimilarityLists[typeofattribute][t].Add(Tuple.Create(inTuple, times));
+                            }
                         }
+                        inTuple++;
                         position += 4;
                     }
                     else
@@ -151,6 +183,55 @@ namespace SQLite
                 }
             }
 
+            // [brand][opel] = [(2,65),...]
+            foreach (var kvp in AttributeSimilarityLists)
+            {
+                attributesimilarity[kvp.Key] = new Dictionary<Tuple<string, string>, double>();
+                foreach (var att in kvp.Value)
+                {
+                    foreach (var attTwo in kvp.Value)
+                    {
+                        if (!attributesimilarity[kvp.Key].ContainsKey(Tuple.Create(att.Key, attTwo.Key)) && att.Key != attTwo.Key)
+                        {
+                            int intersection = 0;
+                            int overlap = 0;
+
+                            int attCounter = 0;
+                            int attTwoCounter = 0;
+
+                            foreach (var p in att.Value)
+                            {
+                                overlap += p.Item2;
+                            }
+                            foreach (var p in attTwo.Value)
+                            {
+                                overlap += p.Item2;
+                            }
+
+                            while ((attCounter < att.Value.Count && attTwoCounter < attTwo.Value.Count))
+                            {
+                                if (att.Value[attCounter].Item1 == attTwo.Value[attTwoCounter].Item1)
+                                {
+                                    intersection += att.Value[attCounter].Item2;
+                                    attCounter++; attTwoCounter++;
+                                }
+                                else if (att.Value[attCounter].Item1 < attTwo.Value[attTwoCounter].Item1)
+                                {
+                                    attCounter++;
+                                }
+                                else
+                                {
+                                    attTwoCounter++;
+                                }
+                            }
+                            double sim = (double)intersection / (double)overlap;
+                            if (sim != 0)
+                                attributesimilarity[kvp.Key][Tuple.Create(att.Key, attTwo.Key)] = sim;
+                        }
+                    }
+                }
+            }
+
             // Get highest attribute value occurence
             int max = 0;
             foreach (int value in qfoccurrences.Values)
@@ -160,6 +241,20 @@ namespace SQLite
             }
             QFMax = max;
         }
+
+        public void addCatergoricAttributeSimilarity(string attributeName)
+        {
+            OpenConnection(metadatastring);
+            ExecuteCommand("CREATE TABLE " + attributeName + "_Attsim" + " (" + "first" + " text, second text, idfqf real)");
+
+            foreach(var kvp in attributesimilarity[attributeName])
+            {
+                ExecuteCommand("INSERT into " + attributeName + "_Attsim VALUES ( '" + kvp.Key.Item1 + "','" + kvp.Key.Item2  +"',"+ kvp.Value+ ");");
+            }
+
+            CloseConnection();
+        }
+
 
         public void PrintQFDictionary()
         {
@@ -182,6 +277,10 @@ namespace SQLite
             // Add occurence to meta database
             FillMetaDBWithAttributeOccurence(ProgressMetadatabase);
 
+            foreach (var kvp in attributesimilarity)
+            {
+                addCatergoricAttributeSimilarity(kvp.Key);
+            }
             // Add categorical attributes
             foreach (var c in CatogoricalValues)
             {
@@ -372,10 +471,10 @@ namespace SQLite
         }
 
         //BuildDatabase from txt file
-        public void BuildDatabase(string nameOfDatabase, string fileToLoadFrom)
+        public void BuildDatabase()
         {
-            CreateDatabaseFile(nameOfDatabase);
-            OpenConnection(nameOfDatabase);
+            CreateDatabaseFile(cardatabasestring);
+            OpenConnection(cardatabasestring);
             StreamReader sr = new StreamReader(fileToLoadFrom);
             string input;
             while ((input = sr.ReadLine()) != null)
@@ -383,6 +482,95 @@ namespace SQLite
                 ExecuteCommand(input);
             }
             CloseConnection();
+        }
+
+
+        public List<Tuple<int,double>> catigoricalSimilarityWithAttSim(string attributeName, string attributeValue)
+        {
+            OpenConnection(metadatastring);
+
+            string sql;
+            SQLiteDataReader reader;
+            SQLiteCommand command;
+
+            Dictionary<string, double> attsimdict;
+            string inclause = "(";
+
+            attsimdict = new Dictionary<string, double>();
+            //get attributeSimilartiy to others
+            sql = "select * from " + attributeName + "_Attsim WHERE first" + " == '" + attributeValue + "'";
+            command = new SQLiteCommand(sql, dbconnection);
+            reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                inclause = inclause + "'" + (reader["second"].ToString()) + "',";
+                attsimdict.Add(reader["second"].ToString(), double.Parse((reader["idfqf"].ToString())));
+            }
+
+            inclause += "'" + attributeValue + "'";
+            inclause += " )";
+
+            // Get idf*qf value of given attribute value
+             sql = "select * from " + attributeName + " WHERE " + attributeName + " == '" + attributeValue + "'";
+             command = new SQLiteCommand(sql, dbconnection);
+             reader = command.ExecuteReader();
+            reader.Read();
+            double idfqf = double.Parse((reader["idfqf"].ToString()));
+
+            // <t value, occurrence> pairs from database
+            List<Tuple<int, double>> similarity = new List<Tuple<int, double>>();
+
+
+            // Get all documents containg the given attribute value
+            sql = "select * from " + attributeName + "_Occurence WHERE " + attributeName + " IN " + inclause + ";";
+            command = new SQLiteCommand(sql, dbconnection);
+            reader = command.ExecuteReader();
+
+            int expectedID = 1;
+            List<int> missedID = new List<int>();
+            while (reader.Read())
+            {
+                // Keep track of id's that will get sim 0
+                while (int.Parse(reader["id"].ToString()) > expectedID)
+                {
+                    
+                    // ID 359 doesnt exist
+                    if (expectedID != 359)
+                        missedID.Add(expectedID);
+                    expectedID++;
+                }
+
+                if (attsimdict.ContainsKey(reader[attributeName].ToString()))
+                {
+                    similarity.Add(Tuple.Create(expectedID, idfqf * attsimdict[reader[attributeName].ToString()]));
+                }
+                else
+                {
+                    similarity.Add(Tuple.Create(expectedID, idfqf));
+                }
+                expectedID++;
+            }
+            // Add missed ids with sim 0
+            foreach (int id in missedID)
+                similarity.Add(Tuple.Create(id, 0.0));
+
+            // Add more possibly more ids with sim 0 
+            while (expectedID <= 396)
+            {
+                // Expected id still doesnt exist
+                if (expectedID != 359)
+                    similarity.Add(Tuple.Create(expectedID, 0.0));
+                expectedID++;
+            }
+
+            CloseConnection();
+
+            similarity.Sort((y, x) => x.Item2.CompareTo(y.Item2));
+            // Return similarity
+            return similarity;
+
+
         }
 
 
@@ -397,6 +585,8 @@ namespace SQLite
             SQLiteDataReader reader = command.ExecuteReader();
             reader.Read();
             double idfqf = double.Parse((reader["idfqf"].ToString()));
+
+
 
             // <t value, occurrence> pairs from database
             List<Tuple<int, double>> similarity = new List<Tuple<int, double>>();
@@ -499,10 +689,11 @@ namespace SQLite
 
 
         //The topK search function
-        public void topK(string search, System.Windows.Forms.DataGridView dgv, System.Windows.Forms.Label searchLabel)
+        public void topK(string search, System.Windows.Forms.DataGridView dgv, System.Windows.Forms.Label searchLabel, System.Windows.Forms.CheckBox sorttopkbox, System.Windows.Forms.CheckBox attsimbox )
         {
-            bool perfectSort = true;
             bool skip = false;
+            bool perfectSort =sorttopkbox.Checked;
+            bool attsim = attsimbox.Checked;
 
             if (search == "")
             {
@@ -531,7 +722,13 @@ namespace SQLite
 
                 // Add similarity between attributeValue and every document to the list
                 if (CatogoricalValues.Contains(attributeName))
+                {
+                    if (attsim && (attributeName == "brand" || attributeName == "type"))
+
+                        attributeSimilarities.Add(catigoricalSimilarityWithAttSim(attributeName, attributeValue));
+                    else
                     attributeSimilarities.Add(catigoricalSimilarity(attributeName, attributeValue));
+                }
                 else if (NumericValues.Contains(attributeName))
                     attributeSimilarities.Add(numericSimilarity(attributeName, double.Parse(attributeValue)));
                 else if (attributeName == "k")
@@ -765,16 +962,16 @@ namespace SQLite
 
                 string[] row = new string[AllValues.Length];
 
-                Console.Write("|" + OIDsim.Item2.Item1 + " - " + OIDsim.Item2.Item2 + "|: ");
+                //Console.Write("|" + OIDsim.Item2.Item1 + " - " + OIDsim.Item2.Item2 + "|: ");
                 for (int r = 0; r < reader.FieldCount; r++)
                 {
                     row[r] = reader[r].ToString();
 
-                    Console.Write((string)reader[r].ToString() + "\t");
+               //     Console.Write((string)reader[r].ToString() + "\t");
                 }
 
                 dgv.Rows.Add(row);
-                Console.WriteLine();
+              //  Console.WriteLine();
             }
 
             CloseConnection();

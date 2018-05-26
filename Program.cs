@@ -19,6 +19,8 @@ namespace SQLite
 
             SQLite db = new SQLite();
 
+            //db.BuildDatabase("CarDatabase.sqlite", );
+
             Form1 window = new Form1(db);
             System.Windows.Forms.Application.Run(window);
             

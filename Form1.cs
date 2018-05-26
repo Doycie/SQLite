@@ -54,7 +54,7 @@ namespace SQLite
         {
             if (e.KeyCode == Keys.Enter)
             {
-                db.topK(TextInputSearch.Text, dataGridView1,SearchLabel);
+                db.topK(TextInputSearch.Text, dataGridView1,SearchLabel,checkBox1,checkBox2);
                 e.Handled = true;
                 e.SuppressKeyPress = true;
             }
@@ -62,9 +62,12 @@ namespace SQLite
 
         private void button1_Click(object sender, EventArgs e)
         {
-            db.topK(TextInputSearch.Text, dataGridView1 , SearchLabel);
+            db.topK(TextInputSearch.Text, dataGridView1 , SearchLabel, checkBox1, checkBox2);
         }
 
-
+        private void button1_Click_1(object sender, EventArgs e)
+        {
+            db.BuildDatabase();
+        }
     }
 }

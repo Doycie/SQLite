@@ -39,6 +39,9 @@ namespace SQLite
             this.label1 = new System.Windows.Forms.Label();
             this.SearchLabel = new System.Windows.Forms.Label();
             this.dataGridView1 = new System.Windows.Forms.DataGridView();
+            this.checkBox1 = new System.Windows.Forms.CheckBox();
+            this.checkBox2 = new System.Windows.Forms.CheckBox();
+            this.button1 = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).BeginInit();
             this.SuspendLayout();
             // 
@@ -100,7 +103,7 @@ namespace SQLite
             this.TextInputSearch.Size = new System.Drawing.Size(462, 20);
             this.TextInputSearch.TabIndex = 7;
             this.TextInputSearch.KeyUp += TextBoxKeyUp;
-            //
+            // 
             // label1
             // 
             this.label1.AutoSize = true;
@@ -111,15 +114,14 @@ namespace SQLite
             this.label1.Text = "To search input a search querry in the following way:\r\nk = \'6\', brand = \'volkswag" +
     "en\';\r\ncylinders = \'4\', brand = \'ford\';\r\nMake sure to add quotation marks even to" +
     " numeric values\r\n";
-            //
-            // Search Label
-            //
+            // 
+            // SearchLabel
+            // 
             this.SearchLabel.AutoSize = true;
             this.SearchLabel.Location = new System.Drawing.Point(12, 220);
-            this.SearchLabel.Name = "label1";
-            this.SearchLabel.Size = new System.Drawing.Size(281, 52);
+            this.SearchLabel.Name = "SearchLabel";
+            this.SearchLabel.Size = new System.Drawing.Size(0, 13);
             this.SearchLabel.TabIndex = 8;
-          
             // 
             // dataGridView1
             // 
@@ -130,13 +132,45 @@ namespace SQLite
             this.dataGridView1.ReadOnly = true;
             this.dataGridView1.Size = new System.Drawing.Size(1279, 307);
             this.dataGridView1.TabIndex = 9;
-            this.dataGridView1.AllowUserToAddRows = false;
+            // 
+            // checkBox1
+            // 
+            this.checkBox1.AutoSize = true;
+            this.checkBox1.Location = new System.Drawing.Point(480, 135);
+            this.checkBox1.Name = "checkBox1";
+            this.checkBox1.Size = new System.Drawing.Size(110, 17);
+            this.checkBox1.TabIndex = 10;
+            this.checkBox1.Text = "Sort final top K list";
+            this.checkBox1.UseVisualStyleBackColor = true;
+            // 
+            // checkBox2
+            // 
+            this.checkBox2.AutoSize = true;
+            this.checkBox2.Location = new System.Drawing.Point(480, 158);
+            this.checkBox2.Name = "checkBox2";
+            this.checkBox2.Size = new System.Drawing.Size(196, 17);
+            this.checkBox2.TabIndex = 11;
+            this.checkBox2.Text = "Use attribute similarity from workload";
+            this.checkBox2.UseVisualStyleBackColor = true;
+            // 
+            // button1
+            // 
+            this.button1.Location = new System.Drawing.Point(1089, 135);
+            this.button1.Name = "button1";
+            this.button1.Size = new System.Drawing.Size(152, 23);
+            this.button1.TabIndex = 12;
+            this.button1.Text = "Create car database";
+            this.button1.UseVisualStyleBackColor = true;
+            this.button1.Click += new System.EventHandler(this.button1_Click_1);
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1303, 578);
+            this.Controls.Add(this.button1);
+            this.Controls.Add(this.checkBox2);
+            this.Controls.Add(this.checkBox1);
             this.Controls.Add(this.dataGridView1);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.SearchLabel);
@@ -165,5 +199,8 @@ namespace SQLite
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Label SearchLabel;
         private System.Windows.Forms.DataGridView dataGridView1;
+        private System.Windows.Forms.CheckBox checkBox1;
+        private System.Windows.Forms.CheckBox checkBox2;
+        private System.Windows.Forms.Button button1;
     }
 }
