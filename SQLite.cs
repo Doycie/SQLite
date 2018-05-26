@@ -226,7 +226,8 @@ namespace SQLite
 
             foreach (KeyValuePair<string, int> vp in occurrences)
             {
-                float qf = 1;
+                // pretend there is only 1 occurence when there are non
+                float qf = 2 / (float)(QFMax + 1);
                 Tuple<string, string> key = Tuple.Create(attributeName, vp.Key);
                 if (qfoccurrences.ContainsKey(key))
                 {
@@ -554,7 +555,7 @@ namespace SQLite
                 // Keep track of values in this row 
                 List<Tuple<int, double>> rowAttributes = new List<Tuple<int, double>>();
                 HashSet<int> uniqueOID = new HashSet<int>();
-                double threshold = 0;
+                decimal threshold = 0;
 
                 // Loop over all attributes in this row
                 for (int attribute = 0; attribute < attributeSimilarities.Count; attribute++)
@@ -567,7 +568,7 @@ namespace SQLite
                     uniqueOID.Add(OID);
 
                     // Keep track of treshold
-                    threshold += similarity;
+                    threshold += Convert.ToDecimal(similarity);
                 }
 
                 if (!skip)
@@ -652,13 +653,13 @@ namespace SQLite
                     foreach (var OIDsim in buffer)
                     {
                         // Get lower and upper range for every item in buffer
-                        double lowerRange = 0;
-                        double upperRange = 0;
+                        decimal lowerRange = 0;
+                        decimal upperRange = 0;
                         for (int attribute = 0; attribute < OIDsim.Value.Count; attribute++)
                         {
                             if (OIDsim.Value[attribute].Item1)
-                                lowerRange += OIDsim.Value[attribute].Item2;
-                            upperRange += OIDsim.Value[attribute].Item2;
+                                lowerRange += Convert.ToDecimal(OIDsim.Value[attribute].Item2);
+                            upperRange += Convert.ToDecimal(OIDsim.Value[attribute].Item2);
                         }
 
                         // Add to topk if lower range is above threshold
@@ -669,7 +670,7 @@ namespace SQLite
                         }
 
                         // If an upper range is over the threshold its possibly better
-                        if (upperRange >= threshold)
+                        if (upperRange > threshold)
                             possibleTopk = true;
                     }
 
@@ -698,7 +699,7 @@ namespace SQLite
                         break;
                 }
                 // Stop when k is reached and there arent any possibly better solotions
-                else if (topk.Count >= k) //&& !possibleTopk 
+                else if (topk.Count >= k && !possibleTopk)
                 {                    
                     if (perfectSort)                    
                         skip = true;
@@ -724,27 +725,21 @@ namespace SQLite
 
             searchLabel.Text = ("Search querry: '" + search + "' Found the top " + topk.Count + " but limiting to " + k + " results in: " + sw.Elapsed.TotalSeconds + "s!");
 
-            // brand = 'volkswagen', mpg = '3'
-            //Console.WriteLine("393: " + topk[393]);
-            //bool iets = (topk[293][0].Item2 * (10 ^ 50) + topk[293][1].Item2) * (10 ^ 50) == (topk[393][0].Item2 * (10 ^ 50) + topk[393][1].Item2 * (10 ^ 50));
-            //bool iets2 = (topk[293][0].Item2 + topk[293][1].Item2)  == (topk[393][0].Item2  + topk[393][1].Item2);
-            //Console.WriteLine("=: " + iets);
-            //Console.WriteLine("=: " + iets2);
 
             // Get OID, <upperRange, lowerRange>
-            List<Tuple<int, Tuple<double, double>>> topkNew = new List<Tuple<int, Tuple<double, double>>>();
+            List<Tuple<int, Tuple<decimal, decimal>>> topkNew = new List<Tuple<int, Tuple<decimal, decimal>>>();
             foreach (var OIDsim in topk)
             {
                 // Get lower and upper range for every item in buffer
-                double lowerRange = 0;
-                double upperRange = 0;
+                decimal lowerRange = 0;
+                decimal upperRange = 0;
                 for (int attribute = 0; attribute < OIDsim.Value.Count; attribute++)
                 {
                     
                     if (OIDsim.Value[attribute].Item1)
-                        lowerRange += Math.Log(OIDsim.Value[attribute].Item2);
+                        lowerRange += Convert.ToDecimal(OIDsim.Value[attribute].Item2);
 
-                    upperRange += Math.Log(OIDsim.Value[attribute].Item2 * (10 ^ 50));
+                    upperRange += Convert.ToDecimal(OIDsim.Value[attribute].Item2);
                 }
 
                 // Add OID with <upperRange, lowerRange>
