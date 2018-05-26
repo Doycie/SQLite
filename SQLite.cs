@@ -71,14 +71,14 @@ namespace SQLite
             return tables;
         }
 
-        //QF Values
-        private Dictionary<Tuple<string, string>, int> qfoccurrences = new Dictionary<Tuple<string, string>, int>();
-
-        private int QFMax = 0;
+        
+        
 
         //QF functions
-        public void MakeQFDictionary()
+        public void fillMetaDBWithWorkloadOccurence()
         {
+            Dictionary<Tuple<string, string>, int> qfoccurrences = new Dictionary<Tuple<string, string>, int>();
+
             if (qfoccurrences.Count > 1)
             {
                 Console.WriteLine("QF values have already been put in a dictionary");
@@ -158,16 +158,24 @@ namespace SQLite
                 if (value > max)
                     max = value;
             }
-            QFMax = max;
+            
+
+            OpenConnection(metadatastring);
+            ExecuteCommand("CREATE TABLE qfoccurrences (attribute text, attributeValue text, occurence integer)");
+            
+            // Add max as special attribute
+            ExecuteCommand("INSERT into qfoccurrences VALUES ('MAX', 'MAX', " + max + ");");
+
+            // Add qf occurence dictionary
+            foreach(var attributeKvp in qfoccurrences)
+            {
+                ExecuteCommand("INSERT into qfoccurrences VALUES ('" + attributeKvp.Key.Item1 + "', '"+ attributeKvp.Key.Item2 +"', " + attributeKvp.Value + ");");
+            }
+
+            CloseConnection();
+
         }
 
-        public void PrintQFDictionary()
-        {
-            foreach (var kvp in qfoccurrences)
-            {
-                Console.WriteLine(kvp);
-            }
-        }
 
         //Create meta database and add attribute tables for IDFQF and Occurence in database
         public void fillMetaDB(System.Windows.Forms.ProgressBar ProgressMetadatabase)
@@ -179,8 +187,11 @@ namespace SQLite
             ProgressMetadatabase.Maximum = CatogoricalValues.Length + NumericValues.Length;
             ProgressMetadatabase.Value = 1;
 
-            // Add occurence to meta database
+            // Add database occurence to meta database
             FillMetaDBWithAttributeOccurence(ProgressMetadatabase);
+
+            // Add workload occurences
+            fillMetaDBWithWorkloadOccurence();
 
             // Add categorical attributes
             foreach (var c in CatogoricalValues)
@@ -222,13 +233,25 @@ namespace SQLite
 
             OpenConnection(metadatastring);
 
+            // Get qfoccurences from meta DB
+            Dictionary<Tuple<string, string>, int> qfoccurrences = new Dictionary<Tuple<string, string>, int>();
+            sql = "select * from qfoccurrences";
+            command = new SQLiteCommand(sql, dbconnection);
+            reader = command.ExecuteReader();
+            while (reader.Read())            
+                qfoccurrences.Add(Tuple.Create(reader["attribute"].ToString(), reader["attributeValue"].ToString()), int.Parse(reader["occurence"].ToString()));
+            
+
+
             ExecuteCommand("CREATE TABLE " + attributeName + " (" + attributeName + " text, idfqf real)");
 
             foreach (KeyValuePair<string, int> vp in occurrences)
             {
                 // pretend there is only 1 occurence when there are non
+                float QFMax = qfoccurrences[Tuple.Create("MAX", "MAX")];
                 float qf = 2 / (float)(QFMax + 1);
                 Tuple<string, string> key = Tuple.Create(attributeName, vp.Key);
+
                 if (qfoccurrences.ContainsKey(key))
                 {
                     qf = (float)(qfoccurrences[key] + 1) / (float)(QFMax + 1);
@@ -277,6 +300,15 @@ namespace SQLite
 
             // Add attribute value t and its number of occurrences in workload to table
             ExecuteCommand("CREATE TABLE " + attributeName + "_workloadValues (t double, occurrences integer)");
+
+
+            // Get qfoccurences from meta DB
+            Dictionary<Tuple<string, string>, int> qfoccurrences = new Dictionary<Tuple<string, string>, int>();
+            sql = "select * from qfoccurrences";
+            command = new SQLiteCommand(sql, dbconnection);
+            reader = command.ExecuteReader();
+            while (reader.Read())
+                qfoccurrences.Add(Tuple.Create(reader["attribute"].ToString(), reader["attributeValue"].ToString()), int.Parse(reader["occurence"].ToString()));
 
             // Fill table
             foreach (var kv in qfoccurrences)
@@ -476,7 +508,6 @@ namespace SQLite
             double h = idfh.Item2;
 
             // <id, similarity> pairs
-            //List<Tuple<int, double>> similarity = new List<Tuple<int, double>>();
             List<Tuple<int, double>> similarity = new List<Tuple<int, double>>();
 
             // Loop over every document with a value for the given attribute
@@ -501,7 +532,7 @@ namespace SQLite
 
         //The topK search function
         public void topK(string search, System.Windows.Forms.DataGridView dgv, System.Windows.Forms.Label searchLabel)
-        {
+        {            
             bool perfectSort = true;
             bool skip = false;
 

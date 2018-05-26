@@ -38,7 +38,7 @@ namespace SQLite
             var confirmResult = MessageBox.Show("Are you sure you want to rebuild the metadatabase, it might take some time?", "Confirm", MessageBoxButtons.YesNo);
             if (confirmResult == DialogResult.Yes)
             {
-                db.MakeQFDictionary();
+                
                 db.fillMetaDB(ProgressMetadatabase);
             }
         }
