@@ -476,7 +476,6 @@ namespace SQLite
             double h = idfh.Item2;
 
             // <id, similarity> pairs
-            //List<Tuple<int, double>> similarity = new List<Tuple<int, double>>();
             List<Tuple<int, double>> similarity = new List<Tuple<int, double>>();
 
             // Loop over every document with a value for the given attribute
