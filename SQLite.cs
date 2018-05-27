@@ -245,13 +245,19 @@ namespace SQLite
         public void addCatergoricAttributeSimilarity(string attributeName)
         {
             OpenConnection(metadatastring);
+            SQLiteCommand sqlComm;
+            sqlComm = new SQLiteCommand("begin", dbconnection);
+            sqlComm.ExecuteNonQuery();
+
             ExecuteCommand("CREATE TABLE " + attributeName + "_Attsim" + " (" + "first" + " text, second text, idfqf real)");
 
             foreach (var kvp in attributesimilarity[attributeName])
             {
                 ExecuteCommand("INSERT into " + attributeName + "_Attsim VALUES ( '" + kvp.Key.Item1 + "','" + kvp.Key.Item2 + "'," + kvp.Value + ");");
             }
-
+            
+            sqlComm = new SQLiteCommand("end", dbconnection);
+            sqlComm.ExecuteNonQuery();
             CloseConnection();
         }
 
@@ -320,6 +326,10 @@ namespace SQLite
 
             OpenConnection(metadatastring);
 
+            SQLiteCommand sqlComm;
+            sqlComm = new SQLiteCommand("begin", dbconnection);
+            sqlComm.ExecuteNonQuery();
+
             ExecuteCommand("CREATE TABLE " + attributeName + " (" + attributeName + " text, idfqf real)");
 
             foreach (KeyValuePair<string, int> vp in occurrences)
@@ -335,6 +345,10 @@ namespace SQLite
                 ExecuteCommand("INSERT into " + attributeName + " VALUES ( '" + vp.Key + "'," + Math.Log(total / vp.Value) * qf + ");");
             }
 
+            
+            sqlComm = new SQLiteCommand("end", dbconnection);
+            sqlComm.ExecuteNonQuery();
+
             CloseConnection();
         }
 
@@ -342,6 +356,9 @@ namespace SQLite
         public void addNumericValuesTable(string attributeName)
         {
             OpenConnection(cardatabasestring);
+
+
+
 
             // Keep track of every value t's number of occurrences
             Dictionary<double, int> uniqueValues = new Dictionary<double, int>();
@@ -366,6 +383,10 @@ namespace SQLite
             CloseConnection();
             OpenConnection(metadatastring);
 
+
+            SQLiteCommand sqlComm;
+            sqlComm = new SQLiteCommand("begin", dbconnection );
+            sqlComm.ExecuteNonQuery();
             // Add attribute value t and its number of occurrences in database to table
             ExecuteCommand("CREATE TABLE " + attributeName + "_databaseValues (t double, occurrences integer)");
 
@@ -386,6 +407,9 @@ namespace SQLite
                     ExecuteCommand("INSERT into " + attributeName + "_workloadValues VALUES (" + Convert.ToDouble(kv.Key.Item2) + ", " + kv.Value + ");");
                 }
             }
+           
+            sqlComm = new SQLiteCommand("end", dbconnection);
+            sqlComm.ExecuteNonQuery();
 
             CloseConnection();
         }
@@ -393,6 +417,10 @@ namespace SQLite
         // Calculate IDF or QF and bandwith for q
         public Tuple<double, double> numericSmooth(List<Tuple<double, int>> tValues, double qValue)
         {
+            if(tValues.Count == 0)
+            {
+                return Tuple.Create(1.0, 0.0);
+            }
             List<double> allTValues = new List<double>();
 
             // Add every value the correct amount of times
@@ -452,6 +480,10 @@ namespace SQLite
             CloseConnection();
             OpenConnection(metadatastring);
 
+            SQLiteCommand sqlComm;
+            sqlComm = new SQLiteCommand("begin", dbconnection);
+            sqlComm.ExecuteNonQuery();
+
             // Create Occurence tables
             foreach (string c in CatogoricalValues)
             {
@@ -473,6 +505,10 @@ namespace SQLite
                 ProgressMetadatabase.PerformStep();
             }
 
+            
+            sqlComm = new SQLiteCommand("end", dbconnection);
+            sqlComm.ExecuteNonQuery();
+
             CloseConnection();
         }
 
@@ -481,12 +517,18 @@ namespace SQLite
         {
             CreateDatabaseFile(cardatabasestring);
             OpenConnection(cardatabasestring);
+            SQLiteCommand sqlComm;
+            sqlComm = new SQLiteCommand("begin", dbconnection);
+            sqlComm.ExecuteNonQuery();
             StreamReader sr = new StreamReader(fileToLoadFrom);
             string input;
             while ((input = sr.ReadLine()) != null)
             {
                 ExecuteCommand(input);
             }
+
+            sqlComm = new SQLiteCommand("end", dbconnection);
+            sqlComm.ExecuteNonQuery();
             CloseConnection();
         }
 
