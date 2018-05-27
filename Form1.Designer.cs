@@ -47,7 +47,7 @@ namespace SQLite
             // 
             // ButtonPrintMetadataTables
             // 
-            this.ButtonPrintMetadataTables.Location = new System.Drawing.Point(1005, 80);
+            this.ButtonPrintMetadataTables.Location = new System.Drawing.Point(1163, 174);
             this.ButtonPrintMetadataTables.Name = "ButtonPrintMetadataTables";
             this.ButtonPrintMetadataTables.Size = new System.Drawing.Size(128, 32);
             this.ButtonPrintMetadataTables.TabIndex = 3;
@@ -58,7 +58,7 @@ namespace SQLite
             // ComboBoxShowMDTable
             // 
             this.ComboBoxShowMDTable.FormattingEnabled = true;
-            this.ComboBoxShowMDTable.Location = new System.Drawing.Point(1139, 87);
+            this.ComboBoxShowMDTable.Location = new System.Drawing.Point(1139, 212);
             this.ComboBoxShowMDTable.Name = "ComboBoxShowMDTable";
             this.ComboBoxShowMDTable.Size = new System.Drawing.Size(152, 21);
             this.ComboBoxShowMDTable.TabIndex = 6;
@@ -67,7 +67,7 @@ namespace SQLite
             // ProgressMetadatabase
             // 
             this.ProgressMetadatabase.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(192)))), ((int)(((byte)(0)))));
-            this.ProgressMetadatabase.Location = new System.Drawing.Point(1005, 54);
+            this.ProgressMetadatabase.Location = new System.Drawing.Point(1005, 93);
             this.ProgressMetadatabase.Minimum = 1;
             this.ProgressMetadatabase.Name = "ProgressMetadatabase";
             this.ProgressMetadatabase.Size = new System.Drawing.Size(286, 20);
@@ -78,7 +78,7 @@ namespace SQLite
             // 
             // ButtonFillMetadatabase
             // 
-            this.ButtonFillMetadatabase.Location = new System.Drawing.Point(1005, 12);
+            this.ButtonFillMetadatabase.Location = new System.Drawing.Point(1005, 55);
             this.ButtonFillMetadatabase.Name = "ButtonFillMetadatabase";
             this.ButtonFillMetadatabase.Size = new System.Drawing.Size(286, 32);
             this.ButtonFillMetadatabase.TabIndex = 4;
@@ -155,9 +155,9 @@ namespace SQLite
             // 
             // button1
             // 
-            this.button1.Location = new System.Drawing.Point(1089, 135);
+            this.button1.Location = new System.Drawing.Point(1005, 12);
             this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(152, 23);
+            this.button1.Size = new System.Drawing.Size(286, 32);
             this.button1.TabIndex = 12;
             this.button1.Text = "Create car database";
             this.button1.UseVisualStyleBackColor = true;

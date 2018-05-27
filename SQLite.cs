@@ -11,9 +11,10 @@ namespace SQLite
     {
         private SQLiteConnection dbconnection;
 
-        private const string metadatastring = "C:/t/metadata.sqlite";
-        private const string cardatabasestring = "CarDatabase.sqlite";
-        private const string fileToLoadFrom = "autompg.sql";
+        private const string metadatastring = "data/metadata.sqlite";
+        private const string cardatabasestring = "data/CarDatabase.sqlite";
+        private const string fileToLoadFrom = "data/autompg.sql";
+        private const string workloadFile = "data/workload.txt";
         private string[] CatogoricalValues = { "cylinders", "model_year", "origin", "brand", "model", "type" };
         private string[] NumericValues = { "mpg", "displacement", "horsepower", "weight", "acceleration" };
         private string[] AllValues = { "id", "mpg", "cylinders", "displacement", "horsepower", "weight", "acceleration", "model_year", "origin", "brand", "model", "type" };
@@ -40,7 +41,8 @@ namespace SQLite
             {
                 attributeName = tableName.Substring(0, tableName.Length - 15);
                 column1 = "\ttimes ";
-            }else if (tableName.EndsWith("Attsim"))
+            }
+            else if (tableName.EndsWith("Attsim"))
             {
                 attsim = true;
             }
@@ -83,9 +85,7 @@ namespace SQLite
         //QF Values
         private Dictionary<Tuple<string, string>, int> qfoccurrences = new Dictionary<Tuple<string, string>, int>();
 
-
         private Dictionary<string, Dictionary<Tuple<string, string>, double>> attributesimilarity = new Dictionary<string, Dictionary<Tuple<string, string>, double>>();
-
 
         private int QFMax = 0;
 
@@ -100,7 +100,7 @@ namespace SQLite
                 Console.WriteLine("QF values have already been put in a dictionary");
                 return;
             }
-            StreamReader sr = new StreamReader("workload.txt");
+            StreamReader sr = new StreamReader(workloadFile);
             string input;
 
             // Skip first two lines
@@ -143,7 +143,7 @@ namespace SQLite
 
                         string cats = inputSplit[position + 3];
                         if (!cats.EndsWith(")"))
-                            cats += " "+ inputSplit[position + 4];
+                            cats += " " + inputSplit[position + 4];
                         cats = cats.TrimStart('(');
                         cats = cats.TrimEnd(')');
 
@@ -247,14 +247,13 @@ namespace SQLite
             OpenConnection(metadatastring);
             ExecuteCommand("CREATE TABLE " + attributeName + "_Attsim" + " (" + "first" + " text, second text, idfqf real)");
 
-            foreach(var kvp in attributesimilarity[attributeName])
+            foreach (var kvp in attributesimilarity[attributeName])
             {
-                ExecuteCommand("INSERT into " + attributeName + "_Attsim VALUES ( '" + kvp.Key.Item1 + "','" + kvp.Key.Item2  +"',"+ kvp.Value+ ");");
+                ExecuteCommand("INSERT into " + attributeName + "_Attsim VALUES ( '" + kvp.Key.Item1 + "','" + kvp.Key.Item2 + "'," + kvp.Value + ");");
             }
 
             CloseConnection();
         }
-
 
         public void PrintQFDictionary()
         {
@@ -372,8 +371,9 @@ namespace SQLite
 
             // Fill table
             foreach (var kv in uniqueValues)
+            {
                 ExecuteCommand("INSERT into " + attributeName + "_databaseValues VALUES (" + kv.Key + ", " + kv.Value + " );");
-
+            }
             // Add attribute value t and its number of occurrences in workload to table
             ExecuteCommand("CREATE TABLE " + attributeName + "_workloadValues (t double, occurrences integer)");
 
@@ -382,7 +382,9 @@ namespace SQLite
             {
                 // Search for corresponding attribute name
                 if (kv.Key.Item1.Equals(attributeName))
+                {
                     ExecuteCommand("INSERT into " + attributeName + "_workloadValues VALUES (" + Convert.ToDouble(kv.Key.Item2) + ", " + kv.Value + ");");
+                }
             }
 
             CloseConnection();
@@ -436,7 +438,7 @@ namespace SQLite
             // Loop over all queries
             string sql = "select * from autompg";
             SQLiteCommand command = new SQLiteCommand(sql, dbconnection);
-            SQLiteDataReader reader = command.ExecuteReader();            
+            SQLiteDataReader reader = command.ExecuteReader();
             while (reader.Read())
             {
                 // Add all query attributes to list
@@ -445,17 +447,20 @@ namespace SQLite
                 foreach (string n in NumericValues)
                     AttributeOccurence.Add(Tuple.Create(n, reader[n].ToString(), int.Parse(reader["id"].ToString())));
             }
-            
+
             // Open connection with metadatabase
             CloseConnection();
             OpenConnection(metadatastring);
 
             // Create Occurence tables
             foreach (string c in CatogoricalValues)
+            {
                 ExecuteCommand("CREATE TABLE " + c + "_Occurence (" + c + " text, id integer)");
+            }
             foreach (string n in NumericValues)
+            {
                 ExecuteCommand("CREATE TABLE " + n + "_Occurence (" + n + " double, id integer)");
-
+            }
             ProgressMetadatabase.Maximum = AttributeOccurence.Count;
             ProgressMetadatabase.Minimum = 0;
             ProgressMetadatabase.Value = 0;
@@ -464,6 +469,7 @@ namespace SQLite
             foreach (var t in AttributeOccurence)
             {
                 ExecuteCommand("INSERT into " + t.Item1 + "_Occurence" + " VALUES ( '" + t.Item2 + "', '" + t.Item3 + "' );");
+
                 ProgressMetadatabase.PerformStep();
             }
 
@@ -484,8 +490,7 @@ namespace SQLite
             CloseConnection();
         }
 
-
-        public List<Tuple<int,double>> catigoricalSimilarityWithAttSim(string attributeName, string attributeValue)
+        public List<Tuple<int, double>> catigoricalSimilarityWithAttSim(string attributeName, string attributeValue)
         {
             OpenConnection(metadatastring);
 
@@ -512,15 +517,14 @@ namespace SQLite
             inclause += " )";
 
             // Get idf*qf value of given attribute value
-             sql = "select * from " + attributeName + " WHERE " + attributeName + " == '" + attributeValue + "'";
-             command = new SQLiteCommand(sql, dbconnection);
-             reader = command.ExecuteReader();
+            sql = "select * from " + attributeName + " WHERE " + attributeName + " == '" + attributeValue + "'";
+            command = new SQLiteCommand(sql, dbconnection);
+            reader = command.ExecuteReader();
             reader.Read();
             double idfqf = double.Parse((reader["idfqf"].ToString()));
 
             // <t value, occurrence> pairs from database
             List<Tuple<int, double>> similarity = new List<Tuple<int, double>>();
-
 
             // Get all documents containg the given attribute value
             sql = "select * from " + attributeName + "_Occurence WHERE " + attributeName + " IN " + inclause + ";";
@@ -534,7 +538,6 @@ namespace SQLite
                 // Keep track of id's that will get sim 0
                 while (int.Parse(reader["id"].ToString()) > expectedID)
                 {
-                    
                     // ID 359 doesnt exist
                     if (expectedID != 359)
                         missedID.Add(expectedID);
@@ -555,7 +558,7 @@ namespace SQLite
             foreach (int id in missedID)
                 similarity.Add(Tuple.Create(id, 0.0));
 
-            // Add more possibly more ids with sim 0 
+            // Add more possibly more ids with sim 0
             while (expectedID <= 396)
             {
                 // Expected id still doesnt exist
@@ -569,10 +572,7 @@ namespace SQLite
             similarity.Sort((y, x) => x.Item2.CompareTo(y.Item2));
             // Return similarity
             return similarity;
-
-
         }
-
 
         // Get sorted S(t, q) for every document given a catigorical attribute value q
         public List<Tuple<int, double>> catigoricalSimilarity(string attributeName, string attributeValue)
@@ -586,11 +586,8 @@ namespace SQLite
             reader.Read();
             double idfqf = double.Parse((reader["idfqf"].ToString()));
 
-
-
             // <t value, occurrence> pairs from database
             List<Tuple<int, double>> similarity = new List<Tuple<int, double>>();
-
 
             // Get all documents containg the given attribute value
             sql = "select * from " + attributeName + "_Occurence WHERE " + attributeName + " == '" + attributeValue + "'";
@@ -602,7 +599,7 @@ namespace SQLite
             {
                 // Keep track of id's that will get sim 0
                 while (int.Parse(reader["id"].ToString()) > expectedID)
-                {                   
+                {
                     // ID 359 doesnt exist
                     if (expectedID != 359)
                         missedID.Add(expectedID);
@@ -614,10 +611,10 @@ namespace SQLite
                 expectedID++;
             }
             // Add missed ids with sim 0
-            foreach(int id in missedID)
+            foreach (int id in missedID)
                 similarity.Add(Tuple.Create(id, 0.0));
 
-            // Add more possibly more ids with sim 0 
+            // Add more possibly more ids with sim 0
             while (expectedID <= 396)
             {
                 // Expected id still doesnt exist
@@ -627,7 +624,7 @@ namespace SQLite
             }
 
             CloseConnection();
-           
+
             // Return similarity
             return similarity;
         }
@@ -687,12 +684,11 @@ namespace SQLite
             return similarity;
         }
 
-
         //The topK search function
-        public void topK(string search, System.Windows.Forms.DataGridView dgv, System.Windows.Forms.Label searchLabel, System.Windows.Forms.CheckBox sorttopkbox, System.Windows.Forms.CheckBox attsimbox )
+        public void topK(string search, System.Windows.Forms.DataGridView dgv, System.Windows.Forms.Label searchLabel, System.Windows.Forms.CheckBox sorttopkbox, System.Windows.Forms.CheckBox attsimbox)
         {
             bool skip = false;
-            bool perfectSort =sorttopkbox.Checked;
+            bool perfectSort = sorttopkbox.Checked;
             bool attsim = attsimbox.Checked;
 
             if (search == "")
@@ -727,7 +723,7 @@ namespace SQLite
 
                         attributeSimilarities.Add(catigoricalSimilarityWithAttSim(attributeName, attributeValue));
                     else
-                    attributeSimilarities.Add(catigoricalSimilarity(attributeName, attributeValue));
+                        attributeSimilarities.Add(catigoricalSimilarity(attributeName, attributeValue));
                 }
                 else if (NumericValues.Contains(attributeName))
                     attributeSimilarities.Add(numericSimilarity(attributeName, double.Parse(attributeValue)));
@@ -742,17 +738,16 @@ namespace SQLite
                 Console.WriteLine("Invalid search not enough attributes");
                 return;
             }
-            
+
             // Create buffer and topk
             Dictionary<int, List<Tuple<bool, double>>> buffer = new Dictionary<int, List<Tuple<bool, double>>>();
             Dictionary<int, List<Tuple<bool, double>>> topk = new Dictionary<int, List<Tuple<bool, double>>>();
-
 
             // Loop over all rows
             for (int row = 0; row < attributeSimilarities[0].Count; row++)
             {
                 // ??? iets anders dan met een hashset doen?
-                // Keep track of values in this row 
+                // Keep track of values in this row
                 List<Tuple<int, double>> rowAttributes = new List<Tuple<int, double>>();
                 HashSet<int> uniqueOID = new HashSet<int>();
                 decimal threshold = 0;
@@ -816,8 +811,6 @@ namespace SQLite
                     }
                 }
 
-
-                
                 if (!skip)
                 {
                     // Add possible new OID sim to buffer
@@ -828,7 +821,7 @@ namespace SQLite
                         {
                             // Create OID value list
                             List<Tuple<bool, double>> OIDValue = new List<Tuple<bool, double>>();
-                            foreach (var tuple in rowAttributes)   
+                            foreach (var tuple in rowAttributes)
                             {
                                 // Correct similarity for OID
                                 if (OID == tuple.Item1)
@@ -844,10 +837,9 @@ namespace SQLite
                     }
                 }
 
-
                 bool possibleTopk = false;
                 if (!skip)
-                {                    
+                {
                     List<int> removedOID = new List<int>();
                     // Move from buffer to topk
                     foreach (var OIDsim in buffer)
@@ -879,19 +871,17 @@ namespace SQLite
                         buffer.Remove(OID);
                 }
 
-
                 if (skip)
                 {
                     bool allSimilarities = true;
                     foreach (var OIDsim in topk)
                     {
-                        // Check if all values attribute vallues are found                         
+                        // Check if all values attribute vallues are found
                         for (int attribute = 0; attribute < OIDsim.Value.Count; attribute++)
                         {
                             if (!OIDsim.Value[attribute].Item1)
                                 allSimilarities = false;
                         }
-
                     }
 
                     // Stop if all values are found
@@ -900,20 +890,16 @@ namespace SQLite
                 }
                 // Stop when k is reached and there arent any possibly better solotions
                 else if (topk.Count >= k && !possibleTopk)
-                {                    
-                    if (perfectSort)                    
+                {
+                    if (perfectSort)
                         skip = true;
-                    
-                    else                    
+                    else
                         break;
                 }
-                
-
             }
 
-
             OpenConnection(cardatabasestring);
-            
+
             sw.Stop();
 
             dgv.Rows.Clear();
@@ -925,7 +911,6 @@ namespace SQLite
 
             searchLabel.Text = ("Search querry: '" + search + "' Found the top " + topk.Count + " but limiting to " + k + " results in: " + sw.Elapsed.TotalSeconds + "s!");
 
-
             // Get OID, <upperRange, lowerRange>
             List<Tuple<int, Tuple<decimal, decimal>>> topkNew = new List<Tuple<int, Tuple<decimal, decimal>>>();
             foreach (var OIDsim in topk)
@@ -935,7 +920,6 @@ namespace SQLite
                 decimal upperRange = 0;
                 for (int attribute = 0; attribute < OIDsim.Value.Count; attribute++)
                 {
-                    
                     if (OIDsim.Value[attribute].Item1)
                         lowerRange += Convert.ToDecimal(OIDsim.Value[attribute].Item2);
 
@@ -945,14 +929,13 @@ namespace SQLite
                 // Add OID with <upperRange, lowerRange>
                 topkNew.Add(Tuple.Create(OIDsim.Key, Tuple.Create(lowerRange, upperRange)));
             }
-            
-            // Sort on lower range, if equal sort on upper range       
-            topkNew.Sort((x, y) => {
+
+            // Sort on lower range, if equal sort on upper range
+            topkNew.Sort((x, y) =>
+            {
                 int result = y.Item2.Item1.CompareTo(x.Item2.Item1);
                 return result == 0 ? y.Item2.Item2.CompareTo(x.Item2.Item2) : result;
             });
-
-
 
             foreach (var OIDsim in topkNew.Take(k))
             {
@@ -967,23 +950,15 @@ namespace SQLite
                 {
                     row[r] = reader[r].ToString();
 
-               //     Console.Write((string)reader[r].ToString() + "\t");
+                    //     Console.Write((string)reader[r].ToString() + "\t");
                 }
 
                 dgv.Rows.Add(row);
-              //  Console.WriteLine();
+                //  Console.WriteLine();
             }
 
             CloseConnection();
-
-            
-
-  
-            
         }
-
-
-
 
         //Database helpers
         private void ExecuteCommand(string com)
